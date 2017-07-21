@@ -51,8 +51,8 @@ typedef enum {
 
 // *ipv6_address_t*
 // ===
-// Simplified address structure where the components are represented in 
-// machine format, left to right [0..7] 
+// Simplified address structure where the components are represented in
+// machine format, left to right [0..7]
 //
 // e.g. little-endian x86 mahinces:
 //
@@ -123,7 +123,7 @@ bool IPV6_API_ENTRY(ipv6_from_str) (
 // *ipv6_from_str_diag*
 // ===
 // 
-// Additional functionality parser that receives diagnostics information from parsing the address, 
+// Additional functionality parser that receives diagnostics information from parsing the address,
 // including errors.
 //
 // ~~~~
@@ -146,8 +146,8 @@ bool IPV6_API_ENTRY(ipv6_from_str_diag) (
 // ~~~~
 char* IPV6_API_ENTRY(ipv6_to_str) (
     const ipv6_address_full_t* in,
-    char* out,
-    size_t size);
+    char* output,
+    size_t output_bytes);
 // ~~~~
 
 
