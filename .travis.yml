@@ -1,0 +1,12 @@
+sudo: false
+language: c
+script:
+    - mkdir build
+    - cd build
+    - cmake -G "Unix Makefiles" ..
+    - make
+
+os: 
+    - linux
+    - osx
+
