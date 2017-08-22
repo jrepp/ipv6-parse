@@ -76,10 +76,37 @@ Event type emitted from diagnostic function
 
 ~~~~
 typedef enum {
-    IPV6_DIAG_STRING_SIZE_EXCEEDED,
-    IPV6_DIAG_INVALID_INPUT,
-    IPV6_DIAG_VALIDATE_FAILED,
+    IPV6_DIAG_STRING_SIZE_EXCEEDED          = 0,
+    IPV6_DIAG_INVALID_INPUT                 = 1,
+    IPV6_DIAG_INVALID_INPUT_CHAR            = 2,
+    IPV6_DIAG_TRAILING_ZEROES               = 3,
+    IPV6_DIAG_V6_BAD_COMPONENT_COUNT        = 4,
+    IPV6_DIAG_V4_BAD_COMPONENT_COUNT        = 5,
+    IPV6_DIAG_V6_COMPONENT_OUT_OF_RANGE     = 6,
+    IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE     = 7,
+    IPV6_DIAG_INVALID_PORT                  = 8,
+    IPV6_DIAG_INVALID_CIDR_MASK             = 9,
+    IPV6_DIAG_INVALID_IPV4_EMBEDDING        = 10,
+    IPV6_DIAG_IPV4_REQUIRED_BITS            = 11,
+    IPV6_DIAG_IPV4_INCORRECT_POSITION       = 12,
+    IPV6_DIAG_INVALID_BRACKETS              = 13,
+    IPV6_DIAG_INVALID_ABBREV                = 14,
+    IPV6_DIAG_INVALID_DECIMAL_TOKEN         = 15,
+    IPV6_DIAG_INVALID_HEX_TOKEN             = 16,
 } ipv6_diag_event_t;
+~~~~
+
+*ipv6_diag_info_t*
+===
+
+Structure that carriers information about the diagnostic message
+
+~~~~
+typedef struct {
+    const char* message;    // English ascii debug message
+    const char* input;      // Input string that generated the diagnostic
+    uint32_t    position;   // Position in input that caused the diagnostic
+} ipv6_diag_info_t;
 ~~~~
 
 *ipv6_diag_func_t*
@@ -88,9 +115,9 @@ typedef enum {
 A diagnostic function that receives information from parsing the address
 
 ~~~~
-typedef void IPV6_API_DECL( *ipv6_diag_func_t )(
+typedef void (*ipv6_diag_func_t )(
     ipv6_diag_event_t event,
-    const char* debug_str,
+    const ipv6_diag_info_t* info,
     void* user_data);
 ~~~~
 

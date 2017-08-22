@@ -87,7 +87,7 @@ typedef struct {
 //
 // ~~~~
 typedef enum {
-    IPV6_DIAG_STRING_SIZE_EXCEEDED          = 0,     
+    IPV6_DIAG_STRING_SIZE_EXCEEDED          = 0,
     IPV6_DIAG_INVALID_INPUT                 = 1,
     IPV6_DIAG_INVALID_INPUT_CHAR            = 2,
     IPV6_DIAG_TRAILING_ZEROES               = 3,
