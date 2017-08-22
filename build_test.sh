@@ -6,5 +6,5 @@ bin/test_app > test_results.md
 failures=`grep -c FAIL test_results.md`
 popd
 
-echo "Completed test pass, ${failures} failures. See bulid/test_results.md"
+echo "Completed test pass, ${failures} failures. See build/test_results.md"
 
