@@ -44,6 +44,7 @@ e.g. little-endian x86 mahinces:
      aa11:bb22:: -> 0xaa11, 0xbb22, 0x0000, ...
 
 ~~~~
+#define IPV6_NUM_COMPONENTS 8
 typedef struct {
     uint16_t                components[IPV6_NUM_COMPONENTS];
 } ipv6_address_t;
@@ -75,7 +76,9 @@ Event type emitted from diagnostic function
 
 ~~~~
 typedef enum {
-    IPV6_DIAG_
+    IPV6_DIAG_STRING_SIZE_EXCEEDED,
+    IPV6_DIAG_INVALID_INPUT,
+    IPV6_DIAG_VALIDATE_FAILED,
 } ipv6_diag_event_t;
 ~~~~
 
@@ -85,9 +88,10 @@ typedef enum {
 A diagnostic function that receives information from parsing the address
 
 ~~~~
-typedef void IPV6_API_ENTRY( (*ipv6_diag_func_t) )(
+typedef void IPV6_API_DECL( *ipv6_diag_func_t )(
     ipv6_diag_event_t event,
-    const char* debug_str);
+    const char* debug_str,
+    void* user_data);
 ~~~~
 
 *ipv6_from_str*
@@ -97,7 +101,7 @@ Read an IPv6 address from a string, handles parsing a variety of format
 information from the spec.
 
 ~~~~
-bool IPV6_API_ENTRY(ipv6_from_str) (
+bool IPV6_API_DECL(ipv6_from_str) (
     const char* input,
     size_t input_bytes,
     ipv6_address_full_t* out);
@@ -110,7 +114,7 @@ Additional functionality parser that receives diagnostics information from parsi
 including errors.
 
 ~~~~
-bool IPV6_API_ENTRY(ipv6_from_str_diag) (
+bool IPV6_API_DECL(ipv6_from_str_diag) (
     const char* input,
     size_t input_bytes,
     ipv6_address_full_t* out,
@@ -127,7 +131,7 @@ The conversion will flatten zero address components according to the address
 formatting specification. For example: ffff:0:0:0:0:0:0:1 -> ffff::1
 
 ~~~~
-char* IPV6_API_ENTRY(ipv6_to_str) (
+char* IPV6_API_DECL(ipv6_to_str) (
     const ipv6_address_full_t* in,
     char* output,
     size_t output_bytes);
@@ -139,7 +143,7 @@ char* IPV6_API_ENTRY(ipv6_to_str) (
 Compare two addresses, 0 if equal, 1 if a greater, -1 if a lesser
 
 ~~~~
-int32_t IPV6_API_ENTRY(ipv6_compare) (
+int32_t IPV6_API_DECL(ipv6_compare) (
     const ipv6_address_full_t* a,
     const ipv6_address_full_t* b);
 ~~~~

@@ -61,6 +61,19 @@
 //    There are no broadcast addresses in IPv6, their function being superseded by multicast addresses.
 //
 
+// Capture high level test run status
+typedef struct {
+    size_t                  total_tests;
+    size_t                  failed_count;
+} test_status_t;
+
+// Structure to represent function over group of tests
+typedef struct {
+    const char*             name;
+    void                    (*func)(test_status_t* status);
+} test_group_t;
+
+// Representation of mainline test data
 typedef struct {
     const char*             input;
     uint16_t                components[IPV6_NUM_COMPONENTS];
@@ -69,9 +82,30 @@ typedef struct {
     uint32_t                flags;
 } test_data_t;
 
+// Representation of diagnostic test data
+typedef struct {
+    const char*             input;
+    ipv6_diag_event_t       expected_event;
+} diag_test_data_t;
+
+typedef struct {
+    const char*             message;
+    ipv6_diag_event_t       event;
+    size_t                  calls;
+} diag_test_capture_t;
+
+// Comparison that converts inputs to strings for textual output
 #define COMPARE(a, b) compare(#a, a, #b, b)
 
-bool compare(const char* aname, const ipv6_address_full_t* a, const char* bname, const ipv6_address_full_t* b) {
+#define LENGTHOF(x) (sizeof(x)/sizeof(x[0]))
+
+#define TEST_FAILED(...) \
+    printf("  FAILED %s:%d", __FILE__, __LINE__); \
+    printf(__VA_ARGS__); \
+    failed = true;
+
+
+static bool compare(const char* aname, const ipv6_address_full_t* a, const char* bname, const ipv6_address_full_t* b) {
     for (int i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
         if (a->address.components[i] != b->address.components[i]) {
             printf("  address element %s [%d]: %04x != %s[%d]: %04x\n",
@@ -83,28 +117,13 @@ bool compare(const char* aname, const ipv6_address_full_t* a, const char* bname,
     return true;
 }
 
-void copy_test_data(ipv6_address_full_t* dst, const test_data_t* src) {
+static void copy_test_data(ipv6_address_full_t* dst, const test_data_t* src) {
     memset(dst, 0, sizeof(ipv6_address_full_t));
     memcpy(&(dst->address.components[0]), &src->components[0], sizeof(uint16_t) * IPV6_NUM_COMPONENTS); 
     dst->port = src->port;
     dst->mask = src->mask;
 }
 
-// TODO: negative tests
-//
-// { "::", "0:0:0:0:0:0:0:0:0", { 0, }, 0, 0 }, // 9 address indicators
-// not enough address indicators
-// multiple zeroruns
-// triple separator
-// out of bound address component
-// out of bound cidr
-// invalid brackets
-// invalid port specifier
-// out of bound port
-// v6 separator after v4 embedding
-// non zero-padded v4 embedding
-// invalid number of v4 octets
-// 
 //
 // CIDR positive tests:
 //
@@ -119,21 +138,7 @@ void copy_test_data(ipv6_address_full_t* dst, const test_data_t* src) {
 //   and its subnet number 2001:0DB8:0:CD30::/60
 //   can be abbreviated as 2001:0DB8:0:CD30:123:4567:89AB:CDEF/60
 //
-// CIDR negative tests: 
-//
-// The following are NOT legal representations of the above prefix:
-//
-// 2001:0DB8:0:CD3/60   may drop leading zeros, but not trailing
-//     zeros, within any 16-bit chunk of the address
-//
-// 2001:0DB8::CD30/60   address to left of "/" expands to
-//     2001:0DB8:0000:0000:0000:0000:0000:CD30
-//
-// 2001:0DB8::CD3/60    address to left of "/" expands to
-//     2001:0DB8:0000:0000:0000:0000:0000:0CD3 
-//
-//
-void test_parsing (test_status_t* status) {
+static void test_parsing (test_status_t* status) {
     // input, alternate, components, mask, port
     test_data_t tests[] = {
         { "::1:2:3:4:5", { 0, 0, 0, 1, 2, 3, 4, 5 }, 0, 0, 0 },
@@ -151,27 +156,19 @@ void test_parsing (test_status_t* status) {
         { "ffff:0:0:0:0:0:0:1", { 0xffff, 0, 0, 0, 0, 0, 0, 1 }, 0, 0, 0 },
         { "2001:0db8:0a0b:12f0:0:0:0:1", { 0x2001, 0x0db8, 0x0a0b, 0x12f0, 0, 0, 0, 1 }, 0, 0, 0 },
         { "2001:db8:a0b:12f0::1", { 0x2001, 0xdb8, 0xa0b, 0x12f0, 0, 0, 0, 1 }, 0, 0, 0 },
-        { "::ffff:1.2.3.4", { 0, 0, 0, 0, 0, 0xffff, 0x102, 0x304 }, 0, 0, IPV6_FLAG_IPV4_EMBED },
-        { "::ffff:1.2.3.4/32", { 0, 0, 0, 0, 0, 0xffff, 0x102, 0x304 }, 32, 0, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK },
-        { "[::ffff:1.2.3.4/32]:5678", { 0, 0, 0, 0, 0, 0xffff, 0x102, 0x304 }, 32, 5678, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
+        { "::ffff:1.2.3.4", { 0, 0, 0, 0, 0, 0xffff, 0x201, 0x403 }, 0, 0, IPV6_FLAG_IPV4_EMBED },
+        { "::ffff:1.2.3.4/32", { 0, 0, 0, 0, 0, 0xffff, 0x201, 0x403 }, 32, 0, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK },
+        { "[::ffff:1.2.3.4/32]:5678", { 0, 0, 0, 0, 0, 0xffff, 0x201, 0x403 }, 32, 5678, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
         { "1:2:3:4:5:0:0:0/128", { 1, 2, 3, 4, 5, 0, 0, 0 }, 128, 0, IPV6_FLAG_HAS_MASK },
         { "[1:2:3:4:5:0:0:0/128]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 128, 5678, IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
         { "[1:2:3:4:5::]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 0, 5678, IPV6_FLAG_HAS_PORT },
         { "[::1]:5678", { 0, 0, 0, 0, 0, 0, 0, 1 }, 0, 5678, IPV6_FLAG_HAS_PORT },
     };
 
-#define lengthof(x) (sizeof(x)/sizeof(x[0]))
-
-#define test_failed(...) \
-    printf("  FAILED %s:%d", __FILE__, __LINE__); \
-    printf(__VA_ARGS__); \
-    failed = true;
-
-    size_t failed_count = 0;
-    size_t total_tests = lengthof(tests);
+    status->total_tests = LENGTHOF(tests);
     char* tostr = (char*)alloca(IPV6_STRING_SIZE);
 
-    for (size_t i = 0; i < total_tests; ++i) {
+    for (size_t i = 0; i < status->total_tests; ++i) {
         ipv6_address_full_t test = { 0, };
         ipv6_address_full_t parsed = { 0, };
         bool failed = false;
@@ -179,43 +176,148 @@ void test_parsing (test_status_t* status) {
         //
         // Test the string conversion into the 'parsed' structure
         //
-        printf("## ipv6 test from_str (primary) test %lu/%lu \"%s\"\n", i+1, total_tests, tests[i].input);
+        printf("ipv6_from_str %lu/%lu \"%s\"\n####\n",
+            i+1,
+            status->total_tests,
+            tests[i].input);
+
         if (!ipv6_from_str(tests[i].input, strlen(tests[i].input), &parsed)) {
-            test_failed("  ipv6_from_str failed\n");
+            TEST_FAILED("  ipv6_from_str failed\n");
         }
         copy_test_data(&test, &tests[i]);
         if (!COMPARE(&test, &parsed)) {
-            test_failed("  compare failed\n");
+            TEST_FAILED("  compare failed\n");
         }
 
         // Test to_str and back with comparion
         if (!ipv6_to_str(&parsed, tostr, IPV6_STRING_SIZE)) {
-            test_failed("  ipv6_to_str failed\n");
+            TEST_FAILED("  ipv6_to_str failed\n");
         }
 
         // printf("  ipv6_to_str -> %s\n", tostr);
         if (!ipv6_from_str(tostr, strlen(tostr), &parsed)) {
-            test_failed("  ipv6 string round-trip failed\n");
+            TEST_FAILED("  ipv6 string round-trip failed\n");
         }
         if (!COMPARE(&parsed, &test)) {
-            test_failed("  compare failed\n");
+            TEST_FAILED("  compare failed\n");
         }
         
         if (!failed) {
-            printf("+ pass\n");
+            printf("+ PASS\n\n");
         } else {
-            printf("- fail\n");
-            failed_count++;
+            printf("- FAIL\n\n");
+            status->failed_count++;
         }
     }
 }
 
-void test_parsing_diag (test_status_t* status) {
+// Function that is called by the address parser to report diagnostics
+static void test_parsing_diag_fn (
+    ipv6_diag_event_t event,
+    const ipv6_diag_info_t* info,
+    void* user_data)
+{
+    diag_test_capture_t* capture = (diag_test_capture_t*)user_data;
+    
+    capture->event = event;
+    capture->message = info->message; 
+    capture->calls++;
 }
 
-int main() {
-    
-    printf("== %lu/%lu passed.\n", (total_tests - failed_count), total_tests);
+// CIDR negative tests: 
+//
+// The following are NOT legal representations of the above prefix:
+//
+// 2001:0DB8:0:CD3/60   may drop leading zeros, but not trailing
+//     zeros, within any 16-bit chunk of the address
+//
+// 2001:0DB8::CD30/60   address to left of "/" expands to
+//     2001:0DB8:0000:0000:0000:0000:0000:CD30
+//
+// 2001:0DB8::CD3/60    address to left of "/" expands to
+//     2001:0DB8:0000:0000:0000:0000:0000:0CD3 
+//
+static void test_parsing_diag (test_status_t* status) {
+    diag_test_data_t tests[] = {
+        { "", IPV6_DIAG_INVALID_INPUT },      // invalid input
+        { "-f::", IPV6_DIAG_INVALID_INPUT_CHAR }, // invalid character
+        { "%f::", IPV6_DIAG_INVALID_INPUT }, // valid character wrong position
+        { "0:0", IPV6_DIAG_V6_BAD_COMPONENT_COUNT }, // too few components
+        { "0:0:0:0:0:0:0:0:0", IPV6_DIAG_V6_BAD_COMPONENT_COUNT }, // too many components
+        { "0:::", IPV6_DIAG_INVALID_INPUT }, // invalid separator
+        { "1ffff:::", IPV6_DIAG_V6_COMPONENT_OUT_OF_RANGE }, // out of bounds separator
+        { "ffff:::/129", IPV6_DIAG_INVALID_CIDR_MASK }, // out of bounds CIDR mask
+        { "[[f::]", IPV6_DIAG_INVALID_BRACKETS }, // invalid brackets
+        { "[f::[", IPV6_DIAG_INVALID_BRACKETS }, // invalid brackets
+        { "]f::]", IPV6_DIAG_INVALID_INPUT }, // invalid brackets
+        { "[f::]::", IPV6_DIAG_INVALID_INPUT }, // invalid port spec 
+        { "[f::]:70000", IPV6_DIAG_INVALID_PORT }, // invalid port spec 
+        { "ffff::1.2.3.4:bbbb", IPV6_DIAG_IPV4_INCORRECT_POSITION }, // ipv6 separator after embedding
+        { "1.2.3.4:bbbb::", IPV6_DIAG_IPV4_INCORRECT_POSITION }, // non-zero padded embedding
+        { "ffff::1.2.3.4.5", IPV6_DIAG_V4_BAD_COMPONENT_COUNT }, // invalid octet count
+    }; 
+
+    status->total_tests = LENGTHOF(tests);
+
+    for (size_t i = 0; i < status->total_tests; ++i) {
+        ipv6_address_full_t addr = { 0, };
+        diag_test_capture_t capture = { 0, };
+        bool failed = false;
+
+        printf("ipv6_from_str_diag %lu/%lu \"%s\"\n####\n",
+            i+1,
+            status->total_tests,
+            tests[i].input);
+
+        if (!ipv6_from_str_diag(
+                tests[i].input,
+                strlen(tests[i].input),
+                &addr,
+                test_parsing_diag_fn,
+                &capture))
+        {
+            if (capture.calls != 1) {
+                TEST_FAILED("    ipv6_from_str_diag failed, wrong # diag calls: %lu\n",
+                    capture.calls);
+            }
+            else if (capture.message == NULL) {
+                TEST_FAILED("    ipv6_from_str_diag failed, message was NULL\n");
+            }
+            else if (capture.event != tests[i].expected_event) {
+                TEST_FAILED("    ipv6_from_str_diag failed, event %u != %u (expected), message: %s\n",
+                    capture.event,
+                    tests[i].expected_event,
+                    capture.message);
+            }
+        }
+        else {
+            TEST_FAILED("    ipv6_from_str_diag was expected to fail with diagnostic");
+        }
+
+        if (!failed) {
+            printf("+ PASS\n\n");
+        } else {
+            printf("- FAIL\n\n");
+            status->failed_count++;
+        }
+    }
+}
+
+int main () {
+    test_group_t test_groups[] = {
+        { "test_parsing", test_parsing },
+        { "test_parsing_diag", test_parsing_diag }
+    };
+
+    for (size_t i = 0; i < LENGTHOF(test_groups); ++i) {
+        test_status_t status = { 0, }; 
+        printf("%s\n===\n", test_groups[i].name);
+        test_groups[i].func(&status);
+
+        printf("\n%lu/%lu passed.\n\n",
+            (status.total_tests - status.failed_count),
+            status.total_tests);
+    }
 
     return 0;
 }

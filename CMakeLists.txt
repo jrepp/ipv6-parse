@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(ipv6)
 
+SET(PARSE_TRACE "" CACHE STRING "Enable tracing of address parsing")
 
 # Check the for the windows secure CRT version of snprintf
 if (WIN32)
@@ -16,6 +17,7 @@ CHECK_INCLUDE_FILES(malloc.h HAVE_MALLOC_H)
 CHECK_INCLUDE_FILES(alloca.h HAVE_ALLOCA_H)
 CHECK_INCLUDE_FILES(string.h HAVE_STRING_H)
 CHECK_INCLUDE_FILES(stdio.h HAVE_STDIO_H)
+CHECK_INCLUDE_FILES(stdarg.h HAVE_STDARG_H)
 CONFIGURE_FILE(config.h.in config.h)
 
 
@@ -63,4 +65,8 @@ endif ()
 if (WIN32)
     set_target_properties(test_app PROPERTIES COMPILE_FLAGS "/W0")
 endif (WIN32)
+
+if ("${PARSE_TRACE}" STREQUAL "")
+    add_definitions(-DPARSE_TRACE=1)
+endif ()
 

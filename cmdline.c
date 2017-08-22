@@ -21,6 +21,25 @@
 #include <alloca.h>
 #endif
 
+typedef struct {
+    const char*             message;
+    ipv6_diag_event_t       event;
+    size_t                  calls;
+} diag_capture_t;
+
+
+// Function that is called by the address parser to report diagnostics
+static void cmdline_parsing_diag_fn (
+    ipv6_diag_event_t event,
+    const ipv6_diag_info_t* info,
+    void* user_data)
+{
+    printf("error: %s, event-code: (%u)\n", info->message, event);
+    printf("    %s\n", info->input);
+    printf("    %*s\n", info->position, info->input);
+}
+
+
 int main (int argc, const char** argv) {
     if (argc < 2) {
         printf("usage: %s <address>\n", argv[0]);
@@ -30,7 +49,7 @@ int main (int argc, const char** argv) {
     {
         ipv6_address_full_t addr, addr2;
         const char* str = argv[1];
-        if (!ipv6_from_str(str, strlen(str), &addr)) {
+        if (!ipv6_from_str_diag(str, strlen(str), &addr, cmdline_parsing_diag_fn, NULL)) {
             printf("- failed to parse: '%s'\n", str);
             return 2;
         }
@@ -41,7 +60,7 @@ int main (int argc, const char** argv) {
             return 3;
         }
 
-        if (!ipv6_from_str(buffer, strlen(buffer), &addr2)) {
+        if (!ipv6_from_str_diag(buffer, strlen(buffer), &addr2, cmdline_parsing_diag_fn, NULL)) {
             printf("- failed to roundtrip: '%s'\n", buffer);
             return 4;
         }

@@ -26,11 +26,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/// Address components
-#define IPV6_NUM_COMPONENTS 8
-
-/// Use this macro to change the function decoratoin
-#define IPV6_API_ENTRY(name) name
 
 /// Maximum size of a IPV
 extern const uint32_t IPV6_STRING_SIZE;
@@ -59,6 +54,7 @@ typedef enum {
 //      aa11:bb22:: -> 0xaa11, 0xbb22, 0x0000, ...
 //
 // ~~~~
+#define IPV6_NUM_COMPONENTS 8
 typedef struct {
     uint16_t                components[IPV6_NUM_COMPONENTS];
 } ipv6_address_t;
@@ -91,9 +87,44 @@ typedef struct {
 //
 // ~~~~
 typedef enum {
-    IPV6_DIAG_
+    IPV6_DIAG_STRING_SIZE_EXCEEDED          = 0,     
+    IPV6_DIAG_INVALID_INPUT                 = 1,
+    IPV6_DIAG_INVALID_INPUT_CHAR            = 2,
+    IPV6_DIAG_TRAILING_ZEROES               = 3,
+    IPV6_DIAG_V6_BAD_COMPONENT_COUNT        = 4,
+    IPV6_DIAG_V4_BAD_COMPONENT_COUNT        = 5,
+    IPV6_DIAG_V6_COMPONENT_OUT_OF_RANGE     = 6,
+    IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE     = 7,
+    IPV6_DIAG_INVALID_PORT                  = 8,
+    IPV6_DIAG_INVALID_CIDR_MASK             = 9,
+    IPV6_DIAG_INVALID_IPV4_EMBEDDING        = 10,
+    IPV6_DIAG_IPV4_REQUIRED_BITS            = 11,
+    IPV6_DIAG_IPV4_INCORRECT_POSITION       = 12,
+    IPV6_DIAG_INVALID_BRACKETS              = 13,
+    IPV6_DIAG_INVALID_ABBREV                = 14,
+    IPV6_DIAG_INVALID_DECIMAL_TOKEN         = 15,
+    IPV6_DIAG_INVALID_HEX_TOKEN             = 16,
 } ipv6_diag_event_t;
 // ~~~~
+
+
+// *ipv6_diag_info_t*
+// ===
+//
+// Structure that carriers information about the diagnostic message
+//
+// ~~~~
+typedef struct {
+    const char* message;    // English ascii debug message
+    const char* input;      // Input string that generated the diagnostic
+    uint32_t    position;   // Position in input that caused the diagnostic
+} ipv6_diag_info_t;
+// ~~~~
+
+
+/// These macros define the signature type of the API functions
+#define IPV6_API_DECL(name) name
+#define IPV6_API_DEF(name) name
 
 // *ipv6_diag_func_t*
 // ===
@@ -101,9 +132,10 @@ typedef enum {
 // A diagnostic function that receives information from parsing the address
 //
 // ~~~~
-typedef void IPV6_API_ENTRY( (*ipv6_diag_func_t) )(
+typedef void (*ipv6_diag_func_t )(
     ipv6_diag_event_t event,
-    const char* debug_str);
+    const ipv6_diag_info_t* info,
+    void* user_data);
 // ~~~~
 
 // *ipv6_from_str*
@@ -113,7 +145,7 @@ typedef void IPV6_API_ENTRY( (*ipv6_diag_func_t) )(
 // information from the spec.
 //
 // ~~~~
-bool IPV6_API_ENTRY(ipv6_from_str) (
+bool IPV6_API_DECL(ipv6_from_str) (
     const char* input,
     size_t input_bytes,
     ipv6_address_full_t* out);
@@ -127,7 +159,7 @@ bool IPV6_API_ENTRY(ipv6_from_str) (
 // including errors.
 //
 // ~~~~
-bool IPV6_API_ENTRY(ipv6_from_str_diag) (
+bool IPV6_API_DECL(ipv6_from_str_diag) (
     const char* input,
     size_t input_bytes,
     ipv6_address_full_t* out,
@@ -144,7 +176,7 @@ bool IPV6_API_ENTRY(ipv6_from_str_diag) (
 // formatting specification. For example: ffff:0:0:0:0:0:0:1 -> ffff::1
 //
 // ~~~~
-char* IPV6_API_ENTRY(ipv6_to_str) (
+char* IPV6_API_DECL(ipv6_to_str) (
     const ipv6_address_full_t* in,
     char* output,
     size_t output_bytes);
@@ -157,7 +189,7 @@ char* IPV6_API_ENTRY(ipv6_to_str) (
 // Compare two addresses, 0 if equal, 1 if a greater, -1 if a lesser
 //
 // ~~~~
-int32_t IPV6_API_ENTRY(ipv6_compare) (
+int32_t IPV6_API_DECL(ipv6_compare) (
     const ipv6_address_full_t* a,
     const ipv6_address_full_t* b);
 // ~~~~
