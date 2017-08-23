@@ -5,6 +5,8 @@
 //
 // A simple and self-contained IPv6 address parsing library.
 //
+// [![Build Status](https://travis-ci.org/jrepp/ipv6-parse.svg?branch=master)](https://travis-ci.org/jrepp/ipv6-parse)
+//
 // # Supported features
 //
 //   - Abbreviations ::1, ff::1:2
