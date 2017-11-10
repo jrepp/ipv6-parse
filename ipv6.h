@@ -28,6 +28,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /// Maximum size of a IPV
 extern const uint32_t IPV6_STRING_SIZE;
@@ -196,3 +200,7 @@ int32_t IPV6_API_DECL(ipv6_compare) (
     const ipv6_address_full_t* a,
     const ipv6_address_full_t* b);
 // ~~~~
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
