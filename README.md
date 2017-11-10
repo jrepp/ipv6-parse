@@ -108,6 +108,7 @@ typedef struct {
     const char* message;    // English ascii debug message
     const char* input;      // Input string that generated the diagnostic
     uint32_t    position;   // Position in input that caused the diagnostic
+    uint32_t    pad0;
 } ipv6_diag_info_t;
 ~~~~
 
