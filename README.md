@@ -3,6 +3,8 @@
 
 A simple and self-contained IPv6 address parsing library.
 
+[![Build Status](https://travis-ci.org/jrepp/ipv6-parse.svg?branch=master)](https://travis-ci.org/jrepp/ipv6-parse)
+
 # Supported features
 
   - Abbreviations ::1, ff::1:2
@@ -106,6 +108,7 @@ typedef struct {
     const char* message;    // English ascii debug message
     const char* input;      // Input string that generated the diagnostic
     uint32_t    position;   // Position in input that caused the diagnostic
+    uint32_t    pad0;
 } ipv6_diag_info_t;
 ~~~~
 
