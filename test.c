@@ -1,5 +1,5 @@
 #include "ipv6.h"
-#include "config.h"
+#include "ipv6_config.h"
 
 #ifdef HAVE_STDIO_H
 #include <stdio.h>
