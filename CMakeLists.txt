@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.6)
 
 project(ipv6)
 
@@ -18,7 +18,7 @@ CHECK_INCLUDE_FILES(alloca.h HAVE_ALLOCA_H)
 CHECK_INCLUDE_FILES(string.h HAVE_STRING_H)
 CHECK_INCLUDE_FILES(stdio.h HAVE_STDIO_H)
 CHECK_INCLUDE_FILES(stdarg.h HAVE_STDARG_H)
-CONFIGURE_FILE(config.h.in config.h)
+CONFIGURE_FILE(ipv6_config.h.in ipv6_config.h)
 
 
 
