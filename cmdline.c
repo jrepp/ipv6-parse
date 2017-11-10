@@ -1,5 +1,5 @@
 #include "ipv6.h"
-#include "config.h"
+#include "ipv6_config.h"
 
 #ifdef WIN32
 #pragma warning(disable:4820) // padding warnings
@@ -34,6 +34,7 @@ static void cmdline_parsing_diag_fn (
     const ipv6_diag_info_t* info,
     void* user_data)
 {
+	(void)user_data;
     printf("error: %s, event-code: (%u)\n", info->message, event);
     printf("    %s\n", info->input);
     printf("    %*s\n", info->position, info->input);
