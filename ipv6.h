@@ -47,6 +47,7 @@ typedef enum {
     IPV6_FLAG_HAS_PORT      = 0x00000001,   // the address specifies a port setting
     IPV6_FLAG_HAS_MASK      = 0x00000002,   // the address specifies a CIDR mask
     IPV6_FLAG_IPV4_EMBED    = 0x00000002,   // the address has an embedded IPv4 address in the last 32bits
+    IPV6_FLAG_IPV4_COMPAT   = 0x00000004,   // the address is IPv4 compatible (1.2.3.4:5555)
 } ipv6_flag_t;
 // ~~~~
 
@@ -149,7 +150,8 @@ typedef void (*ipv6_diag_func_t )(
 // ===
 //
 // Read an IPv6 address from a string, handles parsing a variety of format
-// information from the spec.
+// information from the spec. Will also handle IPv4 address passed in without
+// any embedding information.
 //
 // ~~~~
 bool IPV6_API_DECL(ipv6_from_str) (

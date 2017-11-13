@@ -790,6 +790,22 @@ char* IPV6_API_DEF(ipv6_to_str) (
     const char* ep = out + size - 1; // end pointer with one octet for nul
     char token[16] = {0, };
 
+
+    // If the address is an IPv4 compat address shortcut the IPv6 rules and print an address or address:port 
+    if (in->flags & IPV6_FLAG_IPV4_COMPAT) {
+        const uint8_t* ipv4 = (const uint8_t*)&components[0];
+        if (in->flags & IPV6_FLAG_HAS_PORT) {
+            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d:%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3], in->port);
+        } else {
+            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3]);
+        }
+        while (wp < ep && *cp) {
+            *wp++ = *cp++;
+        }
+        *wp++ = '\0';
+        return out;
+    }
+
     // For each component find the length of 0 digits that it covers (including
     // itself), if that span is the current longest span of 0 digits record the
     // position
