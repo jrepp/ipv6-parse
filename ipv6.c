@@ -14,9 +14,9 @@
 #endif
 
 #if PARSE_TRACE
-#define tracef(...) printf(__VA_ARGS__)
+#define TRACE(...) printf(__VA_ARGS__)
 #else
-#define tracef(...)
+#define TRACE(...)
 #endif
 
 #ifdef HAVE__SNPRINTF_S
@@ -34,6 +34,9 @@
 const uint32_t IPV6_STRING_SIZE =
     sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
 
+//
+// Distinct states of parsing an address
+//
 typedef enum {
     STATE_NONE              = 0,
     STATE_ADDR_COMPONENT    = 1,
@@ -46,6 +49,10 @@ typedef enum {
     STATE_ERROR             = 8,
 } state_t;
 
+//
+// Characters are converted into event classes
+// to trigger state transitions
+//
 typedef enum {
     EC_DIGIT                = 0,
     EC_HEX_DIGIT            = 1,
@@ -58,13 +65,19 @@ typedef enum {
     EC_WHITESPACE           = 8,
 } eventclass_t;
 
-// Address has zerorun separators
+//
+// Flags to indicate persistent state in the reader
+//
 typedef enum {
     FLAG_ZERORUN            = 0x00000001,   // indicates that the zerorun index is set
     FLAG_ERROR              = 0x00000002,   // indicates that an error occurred in parsing
     FLAG_IPV4_EMBEDDING     = 0x00000004,   // indicates that IPv4 embedding has occurred
-} flag_t;
+} ipv6_reader_state_flag_t;
 
+//
+// Reader state encapsulates the process of tokenizing and processing
+// the incoming address specification
+//
 typedef struct ipv6_reader_state_t {
     ipv6_address_full_t*        address_full;       // pointer to output address
     const char*                 error_message;      // null unless an error occurs, pointer must be static
@@ -85,6 +98,10 @@ typedef struct ipv6_reader_state_t {
     void*                       user_data;          // user data passed to diag callback
 } ipv6_reader_state_t;
 
+
+//
+// Enable this section to get a full dump of the parser
+//
 
 #if PARSE_TRACE
 //--------------------------------------------------------------------------------
@@ -130,12 +147,12 @@ static const char* eventclass_str (eventclass_t input)
 // Update the current state logging the transition
 //
 #define CHANGE_STATE(value) \
-    tracef("  * %s -> %s %s:%u\n", \
+    TRACE("  * %s -> %s %s:%u\n", \
         state_str(state->current), state_str(value), __FILE__, (uint32_t)__LINE__); \
     state->current = value;
 
 #define BEGIN_TOKEN(offset) \
-    tracef("  * %s: token begin at %u\n", state_str(state->current), state->position + offset); \
+    TRACE("  * %s: token begin at %u\n", state_str(state->current), state->position + offset); \
     state->token_position = state->position + offset; \
     state->token_len = 0; \
 
@@ -143,7 +160,7 @@ static const char* eventclass_str (eventclass_t input)
 // Indicate the presence of an invalid event class character for the current state
 //
 #define INVALID_INPUT() \
-    tracef("invalid input class (%d) in state: %s at position %d of '%s' (%c)\n", \
+    TRACE("invalid input class (%d) in state: %s at position %d of '%s' (%c)\n", \
         input, state_str(state->current), state->position, state->input, state->input[state->position]); \
     ipv6_error(state, IPV6_DIAG_INVALID_INPUT, "Invalid input"); \
     return;
@@ -153,7 +170,7 @@ static const char* eventclass_str (eventclass_t input)
 //
 #define VALIDATE(msg, diag, cond, action) \
     if (!(cond)) { \
-        tracef("  failed '!" #cond "' in state: %s at position %d of '%s'\n\n", \
+        TRACE("  failed '!" #cond "' in state: %s at position %d of '%s'\n\n", \
             state_str(state->current), state->position, state->input); \
         ipv6_error(state, diag, msg); \
         action; \
@@ -247,7 +264,7 @@ static int32_t read_hexidecimal_token (ipv6_reader_state_t* state)
 static void ipv6_parse_component (ipv6_reader_state_t* state) {
     int32_t component = read_hexidecimal_token(state);
 
-    tracef("  * ipv6 address component %4x (%d)\n", (uint16_t)component, component);
+    TRACE("  * ipv6 address component %4x (%d)\n", (uint16_t)component, component);
     
     VALIDATE("Only 8 16bit components are allowed",
             IPV6_DIAG_V6_BAD_COMPONENT_COUNT,
@@ -270,7 +287,7 @@ static void ipv6_parse_component (ipv6_reader_state_t* state) {
 static void ipv4_parse_component (ipv6_reader_state_t* state) {
     int32_t component = read_decimal_token(state);
 
-    tracef("  * ipv4 address component %2x (%d)\n", (uint8_t)component, component);
+    TRACE("  * ipv4 address component %2x (%d)\n", (uint8_t)component, component);
 
     VALIDATE("Only 4 8bit components are allowed in an IPv4 embedding", 
         IPV6_DIAG_V4_BAD_COMPONENT_COUNT,
@@ -340,7 +357,7 @@ static void ipv6_state_transition (
     ipv6_reader_state_t* state,
     eventclass_t input)
 {
-    tracef("  * transition input: %s <- %s\n", state_str(state->current), eventclass_str(input));
+    TRACE("  * transition input: %s <- %s\n", state_str(state->current), eventclass_str(input));
 
     switch (state->current) {
         default:
@@ -462,7 +479,7 @@ static void ipv6_state_transition (
                     state->zerorun = state->components;
                     state->flags |= FLAG_ZERORUN;
 
-                    tracef("  * zero run index: %d\n", state->zerorun);
+                    TRACE("  * zero run index: %d\n", state->zerorun);
 
                     CHANGE_STATE(STATE_NONE);
                     break;
@@ -608,7 +625,7 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     state.address_full = out;
 
     while (*cp && cp < ep) {
-        tracef(
+        TRACE(
             "  * parse state: %s, cp: '%c' (%02x) position: %d, flags: %08x\n",
             state_str(state.current),
             *cp,
@@ -710,11 +727,11 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     int32_t move_count = state.components - state.zerorun;
     int32_t target = IPV6_NUM_COMPONENTS - move_count;
     if (move_count < 0 || move_count > IPV6_NUM_COMPONENTS) {
-        tracef("invalid move_count: %d\n", move_count);
+        TRACE("invalid move_count: %d\n", move_count);
         return false;
     }
     if (target < 0 || target + move_count > IPV6_NUM_COMPONENTS) {
-        tracef("invalid target location: %d:%d\n", target, move_count);
+        TRACE("invalid target location: %d:%d\n", target, move_count);
         return false;
     }
 
@@ -751,7 +768,7 @@ bool IPV6_API_DEF(ipv6_from_str) (
 }
 
 #define OUTPUT_TRUNCATED() \
-    tracef("  ! buffer truncated at position %u\n", (uint32_t)(wp - out)); \
+    TRACE("  ! buffer truncated at position %u\n", (uint32_t)(wp - out)); \
     *out = '\0';
 
 //--------------------------------------------------------------------------------
