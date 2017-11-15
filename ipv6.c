@@ -70,8 +70,9 @@ typedef enum {
 //
 typedef enum {
     FLAG_ZERORUN            = 0x00000001,   // indicates that the zerorun index is set
-    FLAG_ERROR              = 0x00000002,   // indicates that an error occurred in parsing
-    FLAG_IPV4_EMBEDDING     = 0x00000004,   // indicates that IPv4 embedding has occurred
+    FLAG_ERROR              = 0x00000002,   // indicates an error occurred in parsing
+    FLAG_IPV4_EMBEDDING     = 0x00000004,   // indicates IPv4 embedding has occurred
+    FLAG_IPV4_COMPAT        = 0x00000008,   // indicates IPv4 compatible address
 } ipv6_reader_state_flag_t;
 
 //
@@ -799,6 +800,7 @@ char* IPV6_API_DEF(ipv6_to_str) (
         } else {
             platform_snprintf(token, sizeof(token), "%d.%d.%d.%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3]);
         }
+        const char* cp = token;
         while (wp < ep && *cp) {
             *wp++ = *cp++;
         }
