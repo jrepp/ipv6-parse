@@ -171,9 +171,12 @@ static void test_parsing (test_status_t* status) {
     char* tostr = (char*)alloca(IPV6_STRING_SIZE);
 
     for (size_t i = 0; i < status->total_tests; ++i) {
-        ipv6_address_full_t test = { 0, };
-        ipv6_address_full_t parsed = { 0, };
+        ipv6_address_full_t test;
+        ipv6_address_full_t parsed;
         bool failed = false;
+
+        memset(&test, 0, sizeof(test));
+        memset(&parsed, 0, sizeof(parsed));
 
         //
         // Test the string conversion into the 'parsed' structure
@@ -265,9 +268,12 @@ static void test_parsing_diag (test_status_t* status) {
     status->total_tests = LENGTHOF(tests);
 
     for (size_t i = 0; i < status->total_tests; ++i) {
-        ipv6_address_full_t addr = { 0, };
-        diag_test_capture_t capture = { 0, };
+        ipv6_address_full_t addr;
+        diag_test_capture_t capture;
         bool failed = false;
+
+        memset(&addr, 0, sizeof(addr));
+        memset(&capture, 0, sizeof(capture));
 
         printf("ipv6_from_str_diag %lu/%lu \"%s\"\n####\n",
             i+1,
