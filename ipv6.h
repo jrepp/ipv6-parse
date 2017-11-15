@@ -104,13 +104,12 @@ typedef enum {
     IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE     = 7,
     IPV6_DIAG_INVALID_PORT                  = 8,
     IPV6_DIAG_INVALID_CIDR_MASK             = 9,
-    IPV6_DIAG_INVALID_IPV4_EMBEDDING        = 10,
-    IPV6_DIAG_IPV4_REQUIRED_BITS            = 11,
-    IPV6_DIAG_IPV4_INCORRECT_POSITION       = 12,
-    IPV6_DIAG_INVALID_BRACKETS              = 13,
-    IPV6_DIAG_INVALID_ABBREV                = 14,
-    IPV6_DIAG_INVALID_DECIMAL_TOKEN         = 15,
-    IPV6_DIAG_INVALID_HEX_TOKEN             = 16,
+    IPV6_DIAG_IPV4_REQUIRED_BITS            = 10,
+    IPV6_DIAG_IPV4_INCORRECT_POSITION       = 11,
+    IPV6_DIAG_INVALID_BRACKETS              = 12,
+    IPV6_DIAG_INVALID_ABBREV                = 13,
+    IPV6_DIAG_INVALID_DECIMAL_TOKEN         = 14,
+    IPV6_DIAG_INVALID_HEX_TOKEN             = 15,
 } ipv6_diag_event_t;
 // ~~~~
 
