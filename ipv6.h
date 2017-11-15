@@ -14,6 +14,7 @@
 //   - CIDR notation ffff::/80
 //   - Port notation [::1]:1119
 //   - Combinations of the above [ffff::1.2.3.4/128]:1119
+//   - IPv4 addresses and ports 1.2.3.4, 1.2.3.4:5555
 //
 // # Why would you use this API?
 //
@@ -22,7 +23,7 @@
 //   - You don't want to invoke any extral kernel or system functionality
 //   - You need diagnostic information about the addresses indicating problems
 //   - You need to support Windows XP
-//
+//   - You want a single function to parse both IPv4 and IPv6 addresses and ports
 
 #include <stddef.h>
 #include <stdint.h>
