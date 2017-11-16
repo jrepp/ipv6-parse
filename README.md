@@ -1,27 +1,29 @@
 
-# IPV6 Address Parsing API
+# IPv6 / IPv4 address parser in C
 
-A simple and self-contained IPv6 address parsing library.
+    A self-contained embeddable address parsing library.
+
+Author: jacobrepp@gmail.com
+License: MIT
 
 [![Build Status](https://travis-ci.org/jrepp/ipv6-parse.svg?branch=master)](https://travis-ci.org/jrepp/ipv6-parse)
 
-# Supported features
+# Features
 
-  - Abbreviations ::1, ff::1:2
-  - Embedded IPv4 ffff::1.2.3.4
-  - CIDR notation ffff::/80
-  - Port notation [::1]:1119
-  - Combinations of the above [ffff::1.2.3.4/128]:1119
-  - IPv4 addresses and ports 1.2.3.4, 1.2.3.4:5555
+- Full support for the IPv6 address specification
+    - Abbreviations ::1, ff::1:2
+    - Embedded IPv4 ffff::1.2.3.4
+    - CIDR notation ffff::/80
+    - Port notation [::1]:1119
+    - Combinations of the above [ffff::1.2.3.4/128]:1119
+- IPv4 addresses and ports 1.2.3.4, 1.2.3.4:5555
+- Single function to parse both IPv4 and IPv6 addresses and ports
+- Self contained and multi-plaform, eliminates problems with using built-in address parsing routines
+- Diagnostic information from the parsing API
+- Two way functionality address -> parse -> string -> parse
+- Careful use of strings and pointers
+- Comprehensive positive and negative tests
 
-# Why would you use this API?
-
-  - You need full support for the IPv6 spec
-  - You want to control the code used for parsing addresses
-  - You don't want to invoke any extral kernel or system functionality
-  - You need diagnostic information about the addresses indicating problems
-  - You need to support Windows XP
-  - You want a single function to parse both IPv4 and IPv6 addresses and ports
 
 *ipv6_flag_t*
 ===
