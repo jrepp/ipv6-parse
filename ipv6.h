@@ -14,6 +14,7 @@
 //   - CIDR notation ffff::/80
 //   - Port notation [::1]:1119
 //   - Combinations of the above [ffff::1.2.3.4/128]:1119
+//   - IPv4 addresses and ports 1.2.3.4, 1.2.3.4:5555
 //
 // # Why would you use this API?
 //
@@ -22,7 +23,7 @@
 //   - You don't want to invoke any extral kernel or system functionality
 //   - You need diagnostic information about the addresses indicating problems
 //   - You need to support Windows XP
-//
+//   - You want a single function to parse both IPv4 and IPv6 addresses and ports
 
 #include <stddef.h>
 #include <stdint.h>
@@ -47,6 +48,7 @@ typedef enum {
     IPV6_FLAG_HAS_PORT      = 0x00000001,   // the address specifies a port setting
     IPV6_FLAG_HAS_MASK      = 0x00000002,   // the address specifies a CIDR mask
     IPV6_FLAG_IPV4_EMBED    = 0x00000002,   // the address has an embedded IPv4 address in the last 32bits
+    IPV6_FLAG_IPV4_COMPAT   = 0x00000004,   // the address is IPv4 compatible (1.2.3.4:5555)
 } ipv6_flag_t;
 // ~~~~
 
@@ -103,13 +105,12 @@ typedef enum {
     IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE     = 7,
     IPV6_DIAG_INVALID_PORT                  = 8,
     IPV6_DIAG_INVALID_CIDR_MASK             = 9,
-    IPV6_DIAG_INVALID_IPV4_EMBEDDING        = 10,
-    IPV6_DIAG_IPV4_REQUIRED_BITS            = 11,
-    IPV6_DIAG_IPV4_INCORRECT_POSITION       = 12,
-    IPV6_DIAG_INVALID_BRACKETS              = 13,
-    IPV6_DIAG_INVALID_ABBREV                = 14,
-    IPV6_DIAG_INVALID_DECIMAL_TOKEN         = 15,
-    IPV6_DIAG_INVALID_HEX_TOKEN             = 16,
+    IPV6_DIAG_IPV4_REQUIRED_BITS            = 10,
+    IPV6_DIAG_IPV4_INCORRECT_POSITION       = 11,
+    IPV6_DIAG_INVALID_BRACKETS              = 12,
+    IPV6_DIAG_INVALID_ABBREV                = 13,
+    IPV6_DIAG_INVALID_DECIMAL_TOKEN         = 14,
+    IPV6_DIAG_INVALID_HEX_TOKEN             = 15,
 } ipv6_diag_event_t;
 // ~~~~
 
@@ -149,7 +150,8 @@ typedef void (*ipv6_diag_func_t )(
 // ===
 //
 // Read an IPv6 address from a string, handles parsing a variety of format
-// information from the spec.
+// information from the spec. Will also handle IPv4 address passed in without
+// any embedding information.
 //
 // ~~~~
 bool IPV6_API_DECL(ipv6_from_str) (

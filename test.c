@@ -163,15 +163,20 @@ static void test_parsing (test_status_t* status) {
         { "[1:2:3:4:5:0:0:0/128]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 128, 5678, IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
         { "[1:2:3:4:5::]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 0, 5678, IPV6_FLAG_HAS_PORT },
         { "[::1]:5678", { 0, 0, 0, 0, 0, 0, 0, 1 }, 0, 5678, IPV6_FLAG_HAS_PORT },
+        { "1.2.3.4", { 0x201, 0x403, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
+        { "1.2.3.4:5678", { 0x201, 0x403, 0, 0, 0, 0, 0, 0 }, 0, 5678, IPV6_FLAG_IPV4_COMPAT|IPV6_FLAG_HAS_PORT },
     };
 
     status->total_tests = LENGTHOF(tests);
     char* tostr = (char*)alloca(IPV6_STRING_SIZE);
 
     for (size_t i = 0; i < status->total_tests; ++i) {
-        ipv6_address_full_t test = { 0, };
-        ipv6_address_full_t parsed = { 0, };
+        ipv6_address_full_t test;
+        ipv6_address_full_t parsed;
         bool failed = false;
+
+        memset(&test, 0, sizeof(test));
+        memset(&parsed, 0, sizeof(parsed));
 
         //
         // Test the string conversion into the 'parsed' structure
@@ -244,25 +249,31 @@ static void test_parsing_diag (test_status_t* status) {
         { "%f::", IPV6_DIAG_INVALID_INPUT }, // valid character wrong position
         { "0:0", IPV6_DIAG_V6_BAD_COMPONENT_COUNT }, // too few components
         { "0:0:0:0:0:0:0:0:0", IPV6_DIAG_V6_BAD_COMPONENT_COUNT }, // too many components
-        { "0:::", IPV6_DIAG_INVALID_INPUT }, // invalid separator
-        { "1ffff:::", IPV6_DIAG_V6_COMPONENT_OUT_OF_RANGE }, // out of bounds separator
-        { "ffff:::/129", IPV6_DIAG_INVALID_CIDR_MASK }, // out of bounds CIDR mask
+        { "0:::", IPV6_DIAG_INVALID_ABBREV }, // invalid abbreviation
+        { "1ffff::", IPV6_DIAG_V6_COMPONENT_OUT_OF_RANGE }, // out of bounds separator
+        { "ffff::/129", IPV6_DIAG_INVALID_CIDR_MASK }, // out of bounds CIDR mask
         { "[[f::]", IPV6_DIAG_INVALID_BRACKETS }, // invalid brackets
         { "[f::[", IPV6_DIAG_INVALID_BRACKETS }, // invalid brackets
         { "]f::]", IPV6_DIAG_INVALID_INPUT }, // invalid brackets
         { "[f::]::", IPV6_DIAG_INVALID_INPUT }, // invalid port spec 
         { "[f::]:70000", IPV6_DIAG_INVALID_PORT }, // invalid port spec 
         { "ffff::1.2.3.4:bbbb", IPV6_DIAG_IPV4_INCORRECT_POSITION }, // ipv6 separator after embedding
-        { "1.2.3.4:bbbb::", IPV6_DIAG_IPV4_INCORRECT_POSITION }, // non-zero padded embedding
+        { "1.2.3.4:bbbb::", IPV6_DIAG_INVALID_INPUT }, // invalid port string
         { "ffff::1.2.3.4.5", IPV6_DIAG_V4_BAD_COMPONENT_COUNT }, // invalid octet count
+        { "111.222.333.444", IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE }, // component is too large for IPv4
+        { "111.222.255.255:70000", IPV6_DIAG_INVALID_PORT }, // port is too large
+        { "111.222.255:1010", IPV6_DIAG_V4_BAD_COMPONENT_COUNT }, // wrong number of components
     }; 
 
     status->total_tests = LENGTHOF(tests);
 
     for (size_t i = 0; i < status->total_tests; ++i) {
-        ipv6_address_full_t addr = { 0, };
-        diag_test_capture_t capture = { 0, };
+        ipv6_address_full_t addr;
+        diag_test_capture_t capture;
         bool failed = false;
+
+        memset(&addr, 0, sizeof(addr));
+        memset(&capture, 0, sizeof(capture));
 
         printf("ipv6_from_str_diag %lu/%lu \"%s\"\n####\n",
             i+1,

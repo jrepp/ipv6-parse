@@ -14,9 +14,9 @@
 #endif
 
 #if PARSE_TRACE
-#define tracef(...) printf(__VA_ARGS__)
+#define TRACE(...) printf(__VA_ARGS__)
 #else
-#define tracef(...)
+#define TRACE(...)
 #endif
 
 #ifdef HAVE__SNPRINTF_S
@@ -34,6 +34,9 @@
 const uint32_t IPV6_STRING_SIZE =
     sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
 
+//
+// Distinct states of parsing an address
+//
 typedef enum {
     STATE_NONE              = 0,
     STATE_ADDR_COMPONENT    = 1,
@@ -46,6 +49,10 @@ typedef enum {
     STATE_ERROR             = 8,
 } state_t;
 
+//
+// Characters are converted into event classes
+// to trigger state transitions
+//
 typedef enum {
     EC_DIGIT                = 0,
     EC_HEX_DIGIT            = 1,
@@ -58,13 +65,20 @@ typedef enum {
     EC_WHITESPACE           = 8,
 } eventclass_t;
 
-// Address has zerorun separators
+//
+// Flags to indicate persistent state in the reader
+//
 typedef enum {
-    FLAG_ZERORUN            = 0x00000001,   // indicates that the zerorun index is set
-    FLAG_ERROR              = 0x00000002,   // indicates that an error occurred in parsing
-    FLAG_IPV4_EMBEDDING     = 0x00000004,   // indicates that IPv4 embedding has occurred
-} flag_t;
+    READER_FLAG_ZERORUN            = 0x00000001,   // indicates that the zerorun index is set
+    READER_FLAG_ERROR              = 0x00000002,   // indicates an error occurred in parsing
+    READER_FLAG_IPV4_EMBEDDING     = 0x00000004,   // indicates IPv4 embedding has occurred
+    READER_FLAG_IPV4_COMPAT        = 0x00000008,   // indicates IPv4 compatible address
+} ipv6_reader_state_flag_t;
 
+//
+// Reader state encapsulates the process of tokenizing and processing
+// the incoming address specification
+//
 typedef struct ipv6_reader_state_t {
     ipv6_address_full_t*        address_full;       // pointer to output address
     const char*                 error_message;      // null unless an error occurs, pointer must be static
@@ -77,7 +91,7 @@ typedef struct ipv6_reader_state_t {
     int32_t                     token_len;          // length in characters of token
     int32_t                     separator;          // separator count
     int32_t                     brackets;           // bracket count, should go to 1 then 0 for [::1] address notation
-    int32_t                     zerorun;            // component where run of zeros was begun ::1 would be 0, 1::2 would be 1 
+    int32_t                     zerorun;            // component where run of zeros was begun ::1 would be 0, 1::2 would be 1
     int32_t                     v4_embedding;       // index where v4_embedding occurred
     int32_t                     v4_octets;          // number of octets provided for the v4 address
     uint32_t                    flags;              // flags recording state
@@ -85,6 +99,10 @@ typedef struct ipv6_reader_state_t {
     void*                       user_data;          // user data passed to diag callback
 } ipv6_reader_state_t;
 
+
+//
+// Enable this section to get a full dump of the parser
+//
 
 #if PARSE_TRACE
 //--------------------------------------------------------------------------------
@@ -130,12 +148,12 @@ static const char* eventclass_str (eventclass_t input)
 // Update the current state logging the transition
 //
 #define CHANGE_STATE(value) \
-    tracef("  * %s -> %s %s:%u\n", \
+    TRACE("  * %s -> %s %s:%u\n", \
         state_str(state->current), state_str(value), __FILE__, (uint32_t)__LINE__); \
     state->current = value;
 
 #define BEGIN_TOKEN(offset) \
-    tracef("  * %s: token begin at %u\n", state_str(state->current), state->position + offset); \
+    TRACE("  * %s: token begin at %u\n", state_str(state->current), state->position + offset); \
     state->token_position = state->position + offset; \
     state->token_len = 0; \
 
@@ -143,7 +161,7 @@ static const char* eventclass_str (eventclass_t input)
 // Indicate the presence of an invalid event class character for the current state
 //
 #define INVALID_INPUT() \
-    tracef("invalid input class (%d) in state: %s at position %d of '%s' (%c)\n", \
+    TRACE("invalid input class (%d) in state: %s at position %d of '%s' (%c)\n", \
         input, state_str(state->current), state->position, state->input, state->input[state->position]); \
     ipv6_error(state, IPV6_DIAG_INVALID_INPUT, "Invalid input"); \
     return;
@@ -153,7 +171,7 @@ static const char* eventclass_str (eventclass_t input)
 //
 #define VALIDATE(msg, diag, cond, action) \
     if (!(cond)) { \
-        tracef("  failed '!" #cond "' in state: %s at position %d of '%s'\n\n", \
+        TRACE("  failed '!" #cond "' in state: %s at position %d of '%s'\n\n", \
             state_str(state->current), state->position, state->input); \
         ipv6_error(state, diag, msg); \
         action; \
@@ -171,7 +189,7 @@ static void ipv6_error(ipv6_reader_state_t* state,
     info.position = state->position;
 
     state->diag_func(event, &info, state->user_data);
-    state->flags |= FLAG_ERROR;
+    state->flags |= READER_FLAG_ERROR;
     state->error_message = message;
     CHANGE_STATE(STATE_ERROR);
 }
@@ -179,7 +197,7 @@ static void ipv6_error(ipv6_reader_state_t* state,
 //--------------------------------------------------------------------------------
 static int32_t read_decimal_token (ipv6_reader_state_t* state)
 {
-    VALIDATE("Invalid token", 
+    VALIDATE("Invalid token",
             IPV6_DIAG_INVALID_DECIMAL_TOKEN,
             state->token_position + state->token_len <= state->input_bytes,
             return 0);
@@ -208,7 +226,7 @@ static int32_t read_decimal_token (ipv6_reader_state_t* state)
 //--------------------------------------------------------------------------------
 static int32_t read_hexidecimal_token (ipv6_reader_state_t* state)
 {
-    VALIDATE("Invalid token", 
+    VALIDATE("Invalid token",
             IPV6_DIAG_INVALID_HEX_TOKEN,
             state->token_position + state->token_len <= state->input_bytes,
             return 0);
@@ -247,8 +265,8 @@ static int32_t read_hexidecimal_token (ipv6_reader_state_t* state)
 static void ipv6_parse_component (ipv6_reader_state_t* state) {
     int32_t component = read_hexidecimal_token(state);
 
-    tracef("  * ipv6 address component %4x (%d)\n", (uint16_t)component, component);
-    
+    TRACE("  * ipv6 address component %4x (%d)\n", (uint16_t)component, component);
+
     VALIDATE("Only 8 16bit components are allowed",
             IPV6_DIAG_V6_BAD_COMPONENT_COUNT,
             state->components < 8,
@@ -270,9 +288,9 @@ static void ipv6_parse_component (ipv6_reader_state_t* state) {
 static void ipv4_parse_component (ipv6_reader_state_t* state) {
     int32_t component = read_decimal_token(state);
 
-    tracef("  * ipv4 address component %2x (%d)\n", (uint8_t)component, component);
+    TRACE("  * ipv4 address component %2x (%d)\n", (uint8_t)component, component);
 
-    VALIDATE("Only 4 8bit components are allowed in an IPv4 embedding", 
+    VALIDATE("Only 4 8bit components are allowed in an IPv4 embedding",
         IPV6_DIAG_V4_BAD_COMPONENT_COUNT,
         state->v4_octets < 4,
         return);
@@ -281,14 +299,14 @@ static void ipv4_parse_component (ipv6_reader_state_t* state) {
         IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE,
         component <= 0xff,
         return);
-   
+
     VALIDATE("IPv4 embedding must have at least 32bits",
         IPV6_DIAG_IPV4_REQUIRED_BITS,
         state->v4_embedding <= 6,
         return);
 
     uint8_t* embedding = (uint8_t*)&(state->address_full->address.components[state->v4_embedding]);
-      
+
     embedding[state->v4_octets] = (uint8_t)component;
     state->v4_octets++;
 
@@ -298,7 +316,7 @@ static void ipv4_parse_component (ipv6_reader_state_t* state) {
 
 //--------------------------------------------------------------------------------
 static void ipvx_parse_component (ipv6_reader_state_t* state) {
-    if (state->flags & FLAG_IPV4_EMBEDDING) {
+    if (state->flags & READER_FLAG_IPV4_EMBEDDING) {
         ipv4_parse_component(state);
     } else {
         ipv6_parse_component(state);
@@ -310,7 +328,7 @@ static void ipvx_parse_cidr (ipv6_reader_state_t* state) {
     int32_t mask = read_decimal_token(state);
 
     VALIDATE("CIDR mask must be between 0 and 128 bits",
-        IPV6_DIAG_INVALID_CIDR_MASK, 
+        IPV6_DIAG_INVALID_CIDR_MASK,
         mask > -1 && mask < 129,
         return);
 
@@ -340,7 +358,7 @@ static void ipv6_state_transition (
     ipv6_reader_state_t* state,
     eventclass_t input)
 {
-    tracef("  * transition input: %s <- %s\n", state_str(state->current), eventclass_str(input));
+    TRACE("  * transition input: %s <- %s\n", state_str(state->current), eventclass_str(input));
 
     switch (state->current) {
         default:
@@ -384,7 +402,7 @@ static void ipv6_state_transition (
                     break;
             }
             break;
-    
+
         case STATE_ADDR_COMPONENT:
             switch (input) {
                 case EC_DIGIT:
@@ -403,9 +421,18 @@ static void ipv6_state_transition (
                     break;
 
                 case EC_V6_COMPONENT_SEP:
+                    // Allow IPv4 compatible addresses to contain dotted-quad:port
+                    if (state->flags & READER_FLAG_IPV4_COMPAT) {
+                        ipvx_parse_component(state);
+                        CHANGE_STATE(STATE_PORT);
+                        BEGIN_TOKEN(1);
+                        break;
+                    }
+
+                    // Else treat this is as an address component separator
                     VALIDATE("IPv4 embedding only allowed in last 32 address bits",
                         IPV6_DIAG_IPV4_INCORRECT_POSITION,
-                        (state->flags & FLAG_IPV4_EMBEDDING) == 0,
+                        (state->flags & READER_FLAG_IPV4_EMBEDDING) == 0,
                         return);
                     ipvx_parse_component(state);
                     CHANGE_STATE(STATE_V6_SEPARATOR);
@@ -413,17 +440,23 @@ static void ipv6_state_transition (
 
                 case EC_V4_COMPONENT_SEP:
                     // Mark the embedding point, don't allow IPv6 address components after this point
-                    if (!(state->flags & FLAG_IPV4_EMBEDDING)) {
+                    if (!(state->flags & READER_FLAG_IPV4_EMBEDDING)) {
                         state->v4_embedding = state->components;
-                        state->flags |= FLAG_IPV4_EMBEDDING;
+                        state->flags |= READER_FLAG_IPV4_EMBEDDING;
 
                         VALIDATE("IPv4 embedding requires 32 bits of address space",
                             IPV6_DIAG_IPV4_REQUIRED_BITS,
                             state->components < 7,
                             return);
 
+                        // Backwards compatibility marker for pure IPv4 address
+                        if (state->components == 0) {
+                            state->flags |= READER_FLAG_IPV4_COMPAT;
+                        }
+
                         // Reserve the components
                         state->components += 2;
+
                     }
                     ipvx_parse_component(state);
 
@@ -455,20 +488,29 @@ static void ipv6_state_transition (
                     // Second component separator
                     VALIDATE("Only one abbreviation of zeros is allowed",
                         IPV6_DIAG_INVALID_ABBREV,
-                        (state->flags & FLAG_ZERORUN) == 0,
+                        (state->flags & READER_FLAG_ZERORUN) == 0,
                         return)
 
                     // Mark the position of the run
                     state->zerorun = state->components;
-                    state->flags |= FLAG_ZERORUN;
+                    state->flags |= READER_FLAG_ZERORUN;
 
-                    tracef("  * zero run index: %d\n", state->zerorun);
+                    TRACE("  * zero run index: %d\n", state->zerorun);
+                    break;
 
+                case EC_WHITESPACE:
                     CHANGE_STATE(STATE_NONE);
                     break;
 
-                case EC_WHITESPACE: 
-                    CHANGE_STATE(STATE_NONE);
+                case EC_CLOSE_BRACKET:
+                    CHANGE_STATE(STATE_POST_ADDR);
+                    break;
+
+                case EC_OPEN_BRACKET:
+                    VALIDATE("Invalid open bracket after address separator",
+                        IPV6_DIAG_INVALID_BRACKETS,
+                        false,
+                        return)
                     break;
 
                 case EC_DIGIT:
@@ -477,7 +519,7 @@ static void ipv6_state_transition (
                     BEGIN_TOKEN(0);
                     state->token_len++;
                     break;
-                
+
                 case EC_IFACE:
                     CHANGE_STATE(STATE_IFACE);
                     break;
@@ -495,7 +537,7 @@ static void ipv6_state_transition (
             break;
 
         case STATE_IFACE:
-            // TODO: identify all valid interface characters 
+            // TODO: identify all valid interface characters
             switch (input) {
                 case EC_WHITESPACE:
                     CHANGE_STATE(STATE_NONE);
@@ -515,7 +557,7 @@ static void ipv6_state_transition (
                 case EC_DIGIT:
                     state->token_len++;
                     break;
-                
+
                 case EC_CLOSE_BRACKET:
                     ipvx_parse_cidr(state);
                     CHANGE_STATE(STATE_POST_ADDR);
@@ -581,7 +623,7 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     ipv6_diag_func_t func,
     void* user_data)
 {
-    const char *cp = input; 
+    const char *cp = input;
     const char* ep = input + input_bytes;
     ipv6_reader_state_t state = { 0, };
 
@@ -608,7 +650,7 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     state.address_full = out;
 
     while (*cp && cp < ep) {
-        tracef(
+        TRACE(
             "  * parse state: %s, cp: '%c' (%02x) position: %d, flags: %08x\n",
             state_str(state.current),
             *cp,
@@ -666,7 +708,7 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
         }
 
         // Exit the parse if the last state change triggered an error
-        if (state.flags & FLAG_ERROR) {
+        if (state.flags & READER_FLAG_ERROR) {
             return false;
         }
 
@@ -678,9 +720,9 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     ipv6_state_transition(&state, EC_WHITESPACE);
 
     // Mark the presence of embedded IPv4 addresses
-    if (state.flags & FLAG_IPV4_EMBEDDING) {
+    if (state.flags & READER_FLAG_IPV4_EMBEDDING) {
         if (state.v4_octets != 4) {
-            ipv6_error(&state, IPV6_DIAG_INVALID_IPV4_EMBEDDING,
+            ipv6_error(&state, IPV6_DIAG_V4_BAD_COMPONENT_COUNT,
                     "IPv4 address embedding was used but required 4 octets");
         } else {
             state.address_full->flags |= IPV6_FLAG_IPV4_EMBED;
@@ -688,13 +730,19 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     }
 
     // Early out if there was an error processing the string
-    if ((state.flags & FLAG_ERROR) != 0) {
+    if ((state.flags & READER_FLAG_ERROR) != 0) {
         return false;
     }
-    
-    
+
+    // If an IPv4 compatible address was specified the rest of the IPv6 collapsing
+    // rules can be skipped
+    if ((state.flags & READER_FLAG_IPV4_COMPAT) != 0) {
+        state.address_full->flags |= IPV6_FLAG_IPV4_COMPAT;
+        return true;
+    }
+
     // If there was no abbreviated run all components should be specified
-    if ((state.flags & FLAG_ZERORUN) == 0) {
+    if ((state.flags & READER_FLAG_ZERORUN) == 0) {
         if (state.components < IPV6_NUM_COMPONENTS) {
             ipv6_error(&state, IPV6_DIAG_V6_BAD_COMPONENT_COUNT,
                 "Invalid component count");
@@ -710,20 +758,20 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     int32_t move_count = state.components - state.zerorun;
     int32_t target = IPV6_NUM_COMPONENTS - move_count;
     if (move_count < 0 || move_count > IPV6_NUM_COMPONENTS) {
-        tracef("invalid move_count: %d\n", move_count);
+        TRACE("invalid move_count: %d\n", move_count);
         return false;
     }
     if (target < 0 || target + move_count > IPV6_NUM_COMPONENTS) {
-        tracef("invalid target location: %d:%d\n", target, move_count);
+        TRACE("invalid target location: %d:%d\n", target, move_count);
         return false;
     }
 
-    // Copy the right side of the zero run 
+    // Copy the right side of the zero run
     memcpy(&dst[target], &src[state.zerorun], move_count * sizeof(uint16_t));
 
     // Copy the left side of the zero run
     memcpy(&dst[0], &src[0], state.zerorun * sizeof(uint16_t));
-    
+
     // Everything else is zero, so just copy the destination array into the output directly
     memcpy(&(out->address.components[0]), &dst[0], IPV6_NUM_COMPONENTS * sizeof(uint16_t));
 
@@ -751,7 +799,7 @@ bool IPV6_API_DEF(ipv6_from_str) (
 }
 
 #define OUTPUT_TRUNCATED() \
-    tracef("  ! buffer truncated at position %u\n", (uint32_t)(wp - out)); \
+    TRACE("  ! buffer truncated at position %u\n", (uint32_t)(wp - out)); \
     *out = '\0';
 
 //--------------------------------------------------------------------------------
@@ -768,10 +816,27 @@ char* IPV6_API_DEF(ipv6_to_str) (
         return NULL;
     }
 
-    const uint16_t* components = in->address.components; 
+    const uint16_t* components = in->address.components;
     char* wp = out; // write pointer
     const char* ep = out + size - 1; // end pointer with one octet for nul
     char token[16] = {0, };
+
+
+    // If the address is an IPv4 compat address shortcut the IPv6 rules and print an address or address:port
+    if (in->flags & IPV6_FLAG_IPV4_COMPAT) {
+        const uint8_t* ipv4 = (const uint8_t*)&components[0];
+        if (in->flags & IPV6_FLAG_HAS_PORT) {
+            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d:%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3], in->port);
+        } else {
+            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3]);
+        }
+        const char* cp = token;
+        while (wp < ep && *cp) {
+            *wp++ = *cp++;
+        }
+        *wp++ = '\0';
+        return out;
+    }
 
     // For each component find the length of 0 digits that it covers (including
     // itself), if that span is the current longest span of 0 digits record the
