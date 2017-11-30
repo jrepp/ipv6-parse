@@ -17,6 +17,24 @@
 #include <alloca.h>
 #endif
 
+#ifdef HAVE_WINSOCK_2_H
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winsock2.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
 //
 // Leading zeros MUST be suppressed.
 // For example, 2001:0db8::0001 is not acceptable and must be represented as 2001 : db8::1
@@ -45,15 +63,15 @@
 //
 // ## Anycast
 //
-//    An identifier for a set of interfaces(typically belonging to different nodes).A packet sent to an anycast address is 
-//    delivered to one of the interfaces identified by that address(the "nearest" one, according to the routing protocols' measure of distance). 
+//    An identifier for a set of interfaces(typically belonging to different nodes).A packet sent to an anycast address is
+//    delivered to one of the interfaces identified by that address(the "nearest" one, according to the routing protocols' measure of distance).
 //    Anycast addresses are allocated from the Unicast address space and are not syntactically distinguishable from unicast addresses.
 //
 //    An example for an IPv6 Anycast address is 3731:54 : 65fe : 2::a8
 //
 // ## Multicast
 //
-//    An identifier for a set of interfaces(typically belonging to different nodes).A packet sent to a multicast address is delivered to all 
+//    An identifier for a set of interfaces(typically belonging to different nodes).A packet sent to a multicast address is delivered to all
 //    interfaces identified by that address.
 //
 //    An example for an IPv6 Multicast address is FF01 : 0 : 0 : 0 : 0 : 0 : 0 : 1
@@ -119,7 +137,7 @@ static bool compare(const char* aname, const ipv6_address_full_t* a, const char*
 
 static void copy_test_data(ipv6_address_full_t* dst, const test_data_t* src) {
     memset(dst, 0, sizeof(ipv6_address_full_t));
-    memcpy(&(dst->address.components[0]), &src->components[0], sizeof(uint16_t) * IPV6_NUM_COMPONENTS); 
+    memcpy(&(dst->address.components[0]), &src->components[0], sizeof(uint16_t) * IPV6_NUM_COMPONENTS);
     dst->port = src->port;
     dst->mask = src->mask;
 }
@@ -130,8 +148,8 @@ static void copy_test_data(ipv6_address_full_t* dst, const test_data_t* src) {
 // 2001:0DB8:0000:CD30:0000:0000:0000:0000/60
 // 2001:0DB8::CD30:0:0:0:0/60
 // 2001:0DB8:0:CD30::/60
-// 
-// 
+//
+//
 // When writing both a node address and a prefix of that node address
 //      (e.g., the node's subnet prefix), the two can be combined as follows:
 //   the node address      2001:0DB8:0:CD30:123:4567:89AB:CDEF
@@ -208,7 +226,7 @@ static void test_parsing (test_status_t* status) {
         if (!COMPARE(&parsed, &test)) {
             TEST_FAILED("  compare failed\n");
         }
-        
+
         if (!failed) {
             printf("+ PASS\n\n");
         } else {
@@ -225,13 +243,13 @@ static void test_parsing_diag_fn (
     void* user_data)
 {
     diag_test_capture_t* capture = (diag_test_capture_t*)user_data;
-    
+
     capture->event = event;
-    capture->message = info->message; 
+    capture->message = info->message;
     capture->calls++;
 }
 
-// CIDR negative tests: 
+// CIDR negative tests:
 //
 // The following are NOT legal representations of the above prefix:
 //
@@ -242,7 +260,7 @@ static void test_parsing_diag_fn (
 //     2001:0DB8:0000:0000:0000:0000:0000:CD30
 //
 // 2001:0DB8::CD3/60    address to left of "/" expands to
-//     2001:0DB8:0000:0000:0000:0000:0000:0CD3 
+//     2001:0DB8:0000:0000:0000:0000:0000:0CD3
 //
 static void test_parsing_diag (test_status_t* status) {
     diag_test_data_t tests[] = {
@@ -257,15 +275,15 @@ static void test_parsing_diag (test_status_t* status) {
         { "[[f::]", IPV6_DIAG_INVALID_BRACKETS }, // invalid brackets
         { "[f::[", IPV6_DIAG_INVALID_BRACKETS }, // invalid brackets
         { "]f::]", IPV6_DIAG_INVALID_INPUT }, // invalid brackets
-        { "[f::]::", IPV6_DIAG_INVALID_INPUT }, // invalid port spec 
-        { "[f::]:70000", IPV6_DIAG_INVALID_PORT }, // invalid port spec 
+        { "[f::]::", IPV6_DIAG_INVALID_INPUT }, // invalid port spec
+        { "[f::]:70000", IPV6_DIAG_INVALID_PORT }, // invalid port spec
         { "ffff::1.2.3.4:bbbb", IPV6_DIAG_IPV4_INCORRECT_POSITION }, // ipv6 separator after embedding
         { "1.2.3.4:bbbb::", IPV6_DIAG_INVALID_INPUT }, // invalid port string
         { "ffff::1.2.3.4.5", IPV6_DIAG_V4_BAD_COMPONENT_COUNT }, // invalid octet count
         { "111.222.333.444", IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE }, // component is too large for IPv4
         { "111.222.255.255:70000", IPV6_DIAG_INVALID_PORT }, // port is too large
         { "111.222.255:1010", IPV6_DIAG_V4_BAD_COMPONENT_COUNT }, // wrong number of components
-    }; 
+    };
 
     status->total_tests = LENGTHOF(tests);
 
@@ -316,14 +334,70 @@ static void test_parsing_diag (test_status_t* status) {
     }
 }
 
+static void test_api_use_loopback_const (test_status_t* status) {
+    // test using the host order network constant directly in an ipv6_address_full_t
+    const uint32_t LOOPBACK = 0x7f000001;
+    const char LOOPBACK_STR[] = "127.0.0.1";
+    uint16_t components[IPV6_NUM_COMPONENTS] = {
+        LOOPBACK >> 16,
+        LOOPBACK & 0xffff,
+        0 };
+
+    if (LOOPBACK != ntohl(inet_aton(LOOPBACK_STR))) {
+        TEST_FAILED("    ntohl(inet_aton(LOOPBACK_STR)) does not match host constant\n");
+    }
+
+    // Just treat all of the checks in this function as a single test
+    bool failed = false;
+    status->total_tests = 1;
+
+    // Make the raw address from the in-memory version
+    ipv6_address_full_t addr;
+    memset(&addr, 0, sizeof(addr));
+    memcpy(&addr.address.components[0], &components[0], sizeof(components));
+    addr.flags |= IPV6_FLAG_IPV4_COMPAT;
+
+    ipv6_address_full_t parsed;
+    if (!ipv6_from_str(LOOPBACK_STR, sizeof(LOOPBACK_STR) -1, &parsed)) {
+        TEST_FAILED("    ipv6_from_str failed on LOOPBACK_STR\n");
+    }
+
+    if (!COMPARE(&parsed, &addr)) {
+        TEST_FAILED("    ipv4 compat loopback comparison failed\n");
+    }
+
+    char buffer[64];
+    if (!ipv6_to_str(&addr, buffer, sizeof(buffer))) {
+        TEST_FAILED("    ipv6_to_str failed for raw address\n");
+    }
+
+    ipv6_address_full_t roundtrip;
+    if (!ipv6_from_str(buffer, strlen(buffer), &roundtrip)) {
+        TEST_FAILED("    ipv6_from_str failed for roundtrip string: %s\n", buffer);
+    }
+
+    if (!COMPARE(&roundtrip, &addr)) {
+        TEST_FAILED("    compare failed for roundtrip\n");
+    }
+
+    if (failed) {
+        printf("- FAIL\n\n");
+        status->failed_count++;
+    }
+    else {
+        printf("+ PASS\n\n");
+    }
+}
+
 int main () {
     test_group_t test_groups[] = {
         { "test_parsing", test_parsing },
-        { "test_parsing_diag", test_parsing_diag }
+        { "test_parsing_diag", test_parsing_diag },
+        { "test_api_use_loopback_const", test_api_use_loopback_const }
     };
 
     for (size_t i = 0; i < LENGTHOF(test_groups); ++i) {
-        test_status_t status = { 0, }; 
+        test_status_t status = { 0, };
         printf("%s\n===\n", test_groups[i].name);
         test_groups[i].func(&status);
 
