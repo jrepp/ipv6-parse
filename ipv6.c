@@ -13,7 +13,7 @@
 #include <stdarg.h>
 #endif
 
-#if PARSE_TRACE
+#if defined(PARSE_TRACE)
 #define TRACE(...) printf(__VA_ARGS__)
 #else
 #define TRACE(...)
@@ -104,7 +104,7 @@ typedef struct ipv6_reader_state_t {
 // Enable this section to get a full dump of the parser
 //
 
-#if PARSE_TRACE
+#if defined(PARSE_TRACE)
 //--------------------------------------------------------------------------------
 static const char* state_str (state_t state)
 {
