@@ -50,6 +50,7 @@ endif(COMMAND cmake_policy)
 file(GLOB sources "ipv6.h" "ipv6.c")
 add_executable(test_app ${sources} "test.c")
 add_executable(cmdline_app ${sources} "cmdline.c")
+add_library(ipv6-parse ${sources})
 
 include_directories(build)
 
