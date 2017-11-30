@@ -1,5 +1,7 @@
 #!/bin/bash 
 
+set -e
+
 # Generate the build folder
 if [ ! -d build ]; then
     ./cmake_gmake.sh
