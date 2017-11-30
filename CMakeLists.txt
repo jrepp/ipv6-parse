@@ -45,11 +45,15 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
-endif(COMMAND cmake_policy)
+endif()
 
 file(GLOB sources "ipv6.h" "ipv6.c")
-add_executable(test_app ${sources} "test.c")
-add_executable(cmdline_app ${sources} "cmdline.c")
+
+if (NOT LIBRARY_ONLY)
+    add_executable(ipv6-test ${sources} "test.c")
+    add_executable(ipv6-cmd ${sources} "cmdline.c")
+endif ()
+
 add_library(ipv6-parse ${sources})
 
 include_directories(build)
@@ -58,14 +62,14 @@ if (MSVC)
     set(CMAKE_C_FLAGS_DEBUG "/MTd /Wall /ZI /Od /D_NO_CRT_STDIO_INLINE=1" CACHE STRING "" FORCE)
     set(CMAKE_C_FLAGS_RELEASE "/MT /Wall" CACHE STRING "" FORCE)
 
-    set_target_properties(test_app PROPERTIES COMPILE_FLAGS "/MT")
+    set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS "/MT")
 else ()
     set(CMAKE_C_FLAGS "-Wall -Wno-long-long -pedantic -std=c99")
 endif ()
 
 if (WIN32)
-    set_target_properties(test_app PROPERTIES COMPILE_FLAGS "/W0")
-endif (WIN32)
+    set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS "/W0")
+endif ()
 
 if ("${PARSE_TRACE}" STREQUAL "")
     add_definitions(-DPARSE_TRACE=1)
