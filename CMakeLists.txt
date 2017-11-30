@@ -5,11 +5,11 @@ project(ipv6)
 SET(PARSE_TRACE "" CACHE STRING "Enable tracing of address parsing")
 
 # Check the for the windows secure CRT version of snprintf
-if (WIN32)
+if (MSVC)
     include(CheckSymbolExists)
     set (CMAKE_REQUIRED_FLAGS "/MTd")
     check_symbol_exists(_snprintf_s "stdio.h" HAVE__SNPRINTF_S)
-endif (WIN32)
+endif (MSVC)
 
 # Include header checks
 include (CheckIncludeFiles)
@@ -19,8 +19,6 @@ CHECK_INCLUDE_FILES(string.h HAVE_STRING_H)
 CHECK_INCLUDE_FILES(stdio.h HAVE_STDIO_H)
 CHECK_INCLUDE_FILES(stdarg.h HAVE_STDARG_H)
 CONFIGURE_FILE(ipv6_config.h.in ipv6_config.h)
-
-
 
 # Use bin as the directory for all executables.
 # This will make protoc easy to find.
@@ -49,29 +47,26 @@ endif()
 
 file(GLOB sources "ipv6.h" "ipv6.c")
 
-if (NOT LIBRARY_ONLY)
-    add_executable(ipv6-test ${sources} "test.c")
-    add_executable(ipv6-cmd ${sources} "cmdline.c")
-endif ()
-
-add_library(ipv6-parse ${sources})
-
 include_directories(build)
 
 if (MSVC)
     set(CMAKE_C_FLAGS_DEBUG "/MTd /Wall /ZI /Od /D_NO_CRT_STDIO_INLINE=1" CACHE STRING "" FORCE)
     set(CMAKE_C_FLAGS_RELEASE "/MT /Wall" CACHE STRING "" FORCE)
-
-    set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS "/MT")
 else ()
     set(CMAKE_C_FLAGS "-Wall -Wno-long-long -pedantic -std=c99")
 endif ()
 
-if (WIN32)
-    set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS "/W0")
+if (NOT IPV6_PARSE_LIBRARY_ONLY)
+    add_executable(ipv6-test ${sources} "test.c")
+    add_executable(ipv6-cmd ${sources} "cmdline.c")
+    if (MSVC)
+        set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS "/MT")
+    endif ()
 endif ()
 
-if ("${PARSE_TRACE}" STREQUAL "")
+add_library(ipv6-parse ${sources})
+
+if (PARSE_TRACE)
     add_definitions(-DPARSE_TRACE=1)
 endif ()
 
