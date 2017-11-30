@@ -165,6 +165,8 @@ static void test_parsing (test_status_t* status) {
         { "[::1]:5678", { 0, 0, 0, 0, 0, 0, 0, 1 }, 0, 5678, IPV6_FLAG_HAS_PORT },
         { "1.2.3.4", { 0x201, 0x403, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
         { "1.2.3.4:5678", { 0x201, 0x403, 0, 0, 0, 0, 0, 0 }, 0, 5678, IPV6_FLAG_IPV4_COMPAT|IPV6_FLAG_HAS_PORT },
+        { "127.0.0.1", { 0x007f, 0x100, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
+        { "255.255.255.255", { 0xffff, 0xffff, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
     };
 
     status->total_tests = LENGTHOF(tests);
