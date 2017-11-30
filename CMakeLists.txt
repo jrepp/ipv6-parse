@@ -58,15 +58,22 @@ else ()
 endif ()
 
 if (NOT IPV6_PARSE_LIBRARY_ONLY)
+    CHECK_INCLUDE_FILES(winsock2.h HAVE_WINSOCK_2_H)
+    CHECK_INCLUDE_FILES(sys/socket.h HAVE_SYS_SOCKET_H)
+    CHECK_INCLUDE_FILES(netinet/in.h HAVE_NETINET_IN_H)
+    CHECK_INCLUDE_FILES(arpa/inet.h HAVE_ARPA_INET_H)
+
+    configure_file(ipv6_test_config.h.in ipv6_test_config.h)
+    set(IPV6_TEST_CONFIG_HEADER_PATH ${CMAKE_CURRENT_BINARY_DIR})
+
     add_executable(ipv6-test ${ipv6_sources} "test.c")
     add_executable(ipv6-cmd ${ipv6_sources} "cmdline.c")
 
     set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
 	set_target_properties(ipv6-cmd PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
 
-    target_include_directories(ipv6-test PRIVATE ${IPV6_CONFIG_HEADER_PATH})
+    target_include_directories(ipv6-test PRIVATE ${IPV6_CONFIG_HEADER_PATH} ${IPV6_TEST_CONFIG_HEADER_PATH})
     target_include_directories(ipv6-cmd PRIVATE ${IPV6_CONFIG_HEADER_PATH})
-
 endif ()
 
 add_library(ipv6-parse ${ipv6_sources})

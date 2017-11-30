@@ -286,9 +286,9 @@ static void ipv6_parse_component (ipv6_reader_state_t* state) {
 
 //--------------------------------------------------------------------------------
 static void ipv4_parse_component (ipv6_reader_state_t* state) {
-    int32_t component = read_decimal_token(state);
+    int32_t octet = read_decimal_token(state);
 
-    TRACE("  * ipv4 address component %2x (%d)\n", (uint8_t)component, component);
+    TRACE("  * ipv4 address octet %2x (%d)\n", (uint8_t)octet, octet);
 
     VALIDATE("Only 4 8bit components are allowed in an IPv4 embedding",
         IPV6_DIAG_V4_BAD_COMPONENT_COUNT,
@@ -297,7 +297,7 @@ static void ipv4_parse_component (ipv6_reader_state_t* state) {
 
     VALIDATE("IPv4 address components must be <= 255",
         IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE,
-        component <= 0xff,
+        octet <= 0xff,
         return);
 
     VALIDATE("IPv4 embedding must have at least 32bits",
@@ -305,11 +305,16 @@ static void ipv4_parse_component (ipv6_reader_state_t* state) {
         state->v4_embedding <= 6,
         return);
 
-    uint8_t* embedding = (uint8_t*)&(state->address_full->address.components[state->v4_embedding]);
+    // embed the octets such that they can be trivially treated as host order
+    // node values e.g.: INADDR_LOOPBACK == components[0] << 16 | components[1]
+    // octet 0,1 -> component embedding+0
+    // octet 2,3 -> component embedding+1
+    // even octets are in shifted to the upper 8 bits of the component
+    uint16_t* addr_component = &state->address_full->address.components[state->v4_embedding + (state->v4_octets / 2)];
+    const uint32_t shift = (1 - (state->v4_octets & 1)) * 8;
+    *addr_component |= (uint16_t)octet << shift;
 
-    embedding[state->v4_octets] = (uint8_t)component;
     state->v4_octets++;
-
     state->token_position = 0;
     state->token_len = 0;
 }
@@ -824,11 +829,20 @@ char* IPV6_API_DEF(ipv6_to_str) (
 
     // If the address is an IPv4 compat address shortcut the IPv6 rules and print an address or address:port
     if (in->flags & IPV6_FLAG_IPV4_COMPAT) {
-        const uint8_t* ipv4 = (const uint8_t*)&components[0];
+        const uint32_t host_ipv4 = components[0] << 16 | components[1];
         if (in->flags & IPV6_FLAG_HAS_PORT) {
-            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d:%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3], in->port);
+            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d:%d", 
+                (uint8_t)(host_ipv4 >> 24),
+                (uint8_t)(host_ipv4 >> 16),
+                (uint8_t)(host_ipv4 >> 8),
+                (uint8_t)(host_ipv4),
+                in->port);
         } else {
-            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3]);
+            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d",
+                (uint8_t)(host_ipv4 >> 24),
+                (uint8_t)(host_ipv4 >> 16),
+                (uint8_t)(host_ipv4 >> 8),
+                (uint8_t)(host_ipv4));
         }
         const char* cp = token;
         while (wp < ep && *cp) {
@@ -875,12 +889,15 @@ char* IPV6_API_DEF(ipv6_to_str) (
 
         // Write out the last two components as the IPv4 embed
         if (i == 6 && in->flags & IPV6_FLAG_IPV4_EMBED) {
-            const uint8_t* ipv4 = (const uint8_t*)&components[i];
+            const uint32_t host_ipv4 = components[6] << 16 | components[7];
             platform_snprintf(
                 token,
                 sizeof(token),
                 "%d.%d.%d.%d",
-                ipv4[0], ipv4[1], ipv4[2], ipv4[3]);
+                (uint8_t)(host_ipv4 >> 24),
+                (uint8_t)(host_ipv4 >> 16),
+                (uint8_t)(host_ipv4 >> 8),
+                (uint8_t)(host_ipv4));
             i++;
         } else {
             platform_snprintf(

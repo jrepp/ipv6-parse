@@ -1,5 +1,6 @@
 #include "ipv6.h"
 #include "ipv6_config.h"
+#include "ipv6_test_config.h"
 
 #ifdef HAVE_STDIO_H
 #include <stdio.h>
@@ -32,6 +33,7 @@
 #endif
 
 #ifdef HAVE_ARPA_INET_H
+#define __USE_MISC
 #include <arpa/inet.h>
 #endif
 
@@ -174,16 +176,16 @@ static void test_parsing (test_status_t* status) {
         { "ffff:0:0:0:0:0:0:1", { 0xffff, 0, 0, 0, 0, 0, 0, 1 }, 0, 0, 0 },
         { "2001:0db8:0a0b:12f0:0:0:0:1", { 0x2001, 0x0db8, 0x0a0b, 0x12f0, 0, 0, 0, 1 }, 0, 0, 0 },
         { "2001:db8:a0b:12f0::1", { 0x2001, 0xdb8, 0xa0b, 0x12f0, 0, 0, 0, 1 }, 0, 0, 0 },
-        { "::ffff:1.2.3.4", { 0, 0, 0, 0, 0, 0xffff, 0x201, 0x403 }, 0, 0, IPV6_FLAG_IPV4_EMBED },
-        { "::ffff:1.2.3.4/32", { 0, 0, 0, 0, 0, 0xffff, 0x201, 0x403 }, 32, 0, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK },
-        { "[::ffff:1.2.3.4/32]:5678", { 0, 0, 0, 0, 0, 0xffff, 0x201, 0x403 }, 32, 5678, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
+        { "::ffff:1.2.3.4", { 0, 0, 0, 0, 0, 0xffff, 0x0102, 0x0304 }, 0, 0, IPV6_FLAG_IPV4_EMBED },
+        { "::ffff:1.2.3.4/32", { 0, 0, 0, 0, 0, 0xffff, 0x0102, 0x0304 }, 32, 0, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK },
+        { "[::ffff:1.2.3.4/32]:5678", { 0, 0, 0, 0, 0, 0xffff, 0x0102, 0x0304 }, 32, 5678, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
         { "1:2:3:4:5:0:0:0/128", { 1, 2, 3, 4, 5, 0, 0, 0 }, 128, 0, IPV6_FLAG_HAS_MASK },
         { "[1:2:3:4:5:0:0:0/128]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 128, 5678, IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
         { "[1:2:3:4:5::]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 0, 5678, IPV6_FLAG_HAS_PORT },
         { "[::1]:5678", { 0, 0, 0, 0, 0, 0, 0, 1 }, 0, 5678, IPV6_FLAG_HAS_PORT },
-        { "1.2.3.4", { 0x201, 0x403, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
-        { "1.2.3.4:5678", { 0x201, 0x403, 0, 0, 0, 0, 0, 0 }, 0, 5678, IPV6_FLAG_IPV4_COMPAT|IPV6_FLAG_HAS_PORT },
-        { "127.0.0.1", { 0x007f, 0x100, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
+        { "1.2.3.4", { 0x102, 0x304, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
+        { "1.2.3.4:5678", { 0x102, 0x304, 0, 0, 0, 0, 0, 0 }, 0, 5678, IPV6_FLAG_IPV4_COMPAT|IPV6_FLAG_HAS_PORT },
+        { "127.0.0.1", { 0x7f00, 0x0001, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
         { "255.255.255.255", { 0xffff, 0xffff, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
     };
 
@@ -335,6 +337,10 @@ static void test_parsing_diag (test_status_t* status) {
 }
 
 static void test_api_use_loopback_const (test_status_t* status) {
+    // Just treat all of the checks in this function as a single test
+    bool failed = false;
+    status->total_tests = 1;
+
     // test using the host order network constant directly in an ipv6_address_full_t
     const uint32_t LOOPBACK = 0x7f000001;
     const char LOOPBACK_STR[] = "127.0.0.1";
@@ -343,13 +349,11 @@ static void test_api_use_loopback_const (test_status_t* status) {
         LOOPBACK & 0xffff,
         0 };
 
-    if (LOOPBACK != ntohl(inet_aton(LOOPBACK_STR))) {
+    struct in_addr in_addr;
+    inet_aton(LOOPBACK_STR, &in_addr);
+    if (LOOPBACK != ntohl(in_addr.s_addr)) {
         TEST_FAILED("    ntohl(inet_aton(LOOPBACK_STR)) does not match host constant\n");
     }
-
-    // Just treat all of the checks in this function as a single test
-    bool failed = false;
-    status->total_tests = 1;
 
     // Make the raw address from the in-memory version
     ipv6_address_full_t addr;
