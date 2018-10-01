@@ -179,7 +179,7 @@ static const char* eventclass_str (eventclass_t input)
 
 //--------------------------------------------------------------------------------
 // Indicate error, function here for breakpoints
-static void ipv6_error(ipv6_reader_state_t* state,
+static void ipv6_error (ipv6_reader_state_t* state,
     ipv6_diag_event_t event,
     const char* message)
 {
@@ -575,7 +575,7 @@ static void ipv6_state_transition (
 
                 case EC_IFACE:
                     ipvx_parse_cidr(state);
-                    CHANGE_STATE(EC_IFACE);
+                    CHANGE_STATE(STATE_IFACE);
                     break;
 
                 default:
@@ -630,7 +630,9 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
 {
     const char *cp = input;
     const char* ep = input + input_bytes;
-    ipv6_reader_state_t state = { 0, };
+    ipv6_reader_state_t state;
+
+    memset(&state, 0, sizeof(state));
 
     state.diag_func = func;
     state.user_data = user_data;
@@ -859,7 +861,8 @@ char* IPV6_API_DEF(ipv6_to_str) (
     uint32_t longest_span = 0;
     uint32_t longest_position = 0;
     uint8_t spans[IPV6_NUM_COMPONENTS] = { 0, };
-    for (uint32_t i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
+    uint32_t i;
+    for (i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
         if (components[i]) {
             if (spans[spans_position] > longest_span) {
                 longest_position = spans_position;
@@ -884,7 +887,7 @@ char* IPV6_API_DEF(ipv6_to_str) (
     }
 
     // Emit all of the components
-    for (uint32_t i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
+    for (i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
         const char* cp = token;
 
         // Write out the last two components as the IPv4 embed
@@ -970,9 +973,10 @@ int32_t IPV6_API_DEF(ipv6_compare) (
     const ipv6_address_full_t* b)
 {
     int32_t compare;
+    uint32_t i;
 
     // First compare the components in order
-    for (uint32_t i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
+    for (i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
         compare = a->address.components[i] - b->address.components[i];
         if (compare != 0) {
             return compare;
