@@ -861,8 +861,7 @@ char* IPV6_API_DEF(ipv6_to_str) (
     uint32_t longest_span = 0;
     uint32_t longest_position = 0;
     uint8_t spans[IPV6_NUM_COMPONENTS] = { 0, };
-    uint32_t i;
-    for (i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
+    for (uint32_t i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
         if (components[i]) {
             if (spans[spans_position] > longest_span) {
                 longest_position = spans_position;
@@ -887,7 +886,7 @@ char* IPV6_API_DEF(ipv6_to_str) (
     }
 
     // Emit all of the components
-    for (i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
+    for (uint32_t i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
         const char* cp = token;
 
         // Write out the last two components as the IPv4 embed
@@ -973,10 +972,9 @@ int32_t IPV6_API_DEF(ipv6_compare) (
     const ipv6_address_full_t* b)
 {
     int32_t compare;
-    uint32_t i;
 
     // First compare the components in order
-    for (i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
+    for (uint32_t i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
         compare = a->address.components[i] - b->address.components[i];
         if (compare != 0) {
             return compare;
