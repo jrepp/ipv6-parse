@@ -142,7 +142,7 @@ typedef struct {
 // A diagnostic function that receives information from parsing the address
 //
 // ~~~~
-typedef void (*ipv6_diag_func_t )(
+typedef void (*ipv6_diag_func_t) (
     ipv6_diag_event_t event,
     const ipv6_diag_info_t* info,
     void* user_data);
