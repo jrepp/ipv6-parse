@@ -52,7 +52,7 @@ endif()
 file(GLOB ipv6_sources "ipv6.h" "ipv6.c" ${IPV6_CONFIG_HEADER_PATH}/ipv6_config.h)
 
 if (MSVC)
-	set(ipv6_target_compile_flags "/MTd /Wall /ZI /Od /D_NO_CRT_STDIO_INLINE=1")
+    set(ipv6_target_compile_flags "/MTd /Wall /ZI /Od /D_NO_CRT_STDIO_INLINE=1")
 else ()
     set(ipv6_target_compile_flags "-Wall -Wno-long-long -pedantic -std=c99")
 endif ()
@@ -70,10 +70,15 @@ if (NOT IPV6_PARSE_LIBRARY_ONLY)
     add_executable(ipv6-cmd ${ipv6_sources} "cmdline.c")
 
     set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
-	set_target_properties(ipv6-cmd PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
+    set_target_properties(ipv6-cmd PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
 
     target_include_directories(ipv6-test PRIVATE ${IPV6_CONFIG_HEADER_PATH} ${IPV6_TEST_CONFIG_HEADER_PATH})
     target_include_directories(ipv6-cmd PRIVATE ${IPV6_CONFIG_HEADER_PATH})
+		
+		if (MSVC)
+        target_link_libraries(ipv6-test ws2_32)
+		    target_link_libraries(ipv6-cmd ws2_32)
+		endif ()
 endif ()
 
 add_library(ipv6-parse ${ipv6_sources})
@@ -82,6 +87,6 @@ set_target_properties(ipv6-parse PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_
 
 if (PARSE_TRACE)
     set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS "-DPARSE_TRACE=1")
-	set_target_properties(ipv6-cmd PROPERTIES COMPILE_FLAGS "-DPARSE_TRACE=1")
-	set_target_properties(ipv6-parse PROPERTIES COMPILE_FLAGS "-DPARSE_TRACE=1")
+    set_target_properties(ipv6-cmd PROPERTIES COMPILE_FLAGS "-DPARSE_TRACE=1")
+    set_target_properties(ipv6-parse PROPERTIES COMPILE_FLAGS "-DPARSE_TRACE=1")
 endif ()

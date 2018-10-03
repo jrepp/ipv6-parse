@@ -350,7 +350,11 @@ static void test_api_use_loopback_const (test_status_t* status) {
         0 };
 
     struct in_addr in_addr;
+#if WIN32
+    inet_pton(AF_INET, LOOPBACK_STR, &in_addr);
+#else
     inet_aton(LOOPBACK_STR, &in_addr);
+#endif
     if (LOOPBACK != ntohl(in_addr.s_addr)) {
         TEST_FAILED("    ntohl(inet_aton(LOOPBACK_STR)) does not match host constant\n");
     }
