@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(ipv6)
 
-SET(PARSE_TRACE "" CACHE STRING "Enable tracing of address parsing")
+SET(PARSE_TRACE 0 CACHE BOOL "Enable tracing of address parsing")
 
 # Check the for the windows secure CRT version of snprintf
 if (MSVC)
@@ -62,6 +62,7 @@ if (NOT IPV6_PARSE_LIBRARY_ONLY)
     CHECK_INCLUDE_FILES(sys/socket.h HAVE_SYS_SOCKET_H)
     CHECK_INCLUDE_FILES(netinet/in.h HAVE_NETINET_IN_H)
     CHECK_INCLUDE_FILES(arpa/inet.h HAVE_ARPA_INET_H)
+    CHECK_INCLUDE_FILES(ws2tcpip.h HAVE_WS_2_TCPIP_H)
 
     configure_file(ipv6_test_config.h.in ipv6_test_config.h)
     set(IPV6_TEST_CONFIG_HEADER_PATH ${CMAKE_CURRENT_BINARY_DIR})
@@ -86,6 +87,7 @@ target_include_directories(ipv6-parse PUBLIC ${IPV6_CONFIG_HEADER_PATH})
 set_target_properties(ipv6-parse PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
 
 if (PARSE_TRACE)
+    message("Parse tracing enabled")
     set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS "-DPARSE_TRACE=1")
     set_target_properties(ipv6-cmd PROPERTIES COMPILE_FLAGS "-DPARSE_TRACE=1")
     set_target_properties(ipv6-parse PROPERTIES COMPILE_FLAGS "-DPARSE_TRACE=1")
