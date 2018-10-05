@@ -24,16 +24,21 @@ in_code_section = False
 def process_line(line):
     global in_code_section 
 
-    section_match = re.compile(r'^// \*')
+    section_match = re.compile(r'^// #')
     line_match = re.compile(r'^// ')
     space_match = re.compile(r'^//$')
-    code_section_match = re.compile(r'^// ~~')
+    code_section_match = re.compile(r'^// ~~~~')
     m = section_match.match(line)
     if m:
         start_section(line)
     elif code_section_match.match(line):
+        if not in_code_section:
+            emit_line_nosub('```c')
+            emit_empty()
+        else:
+            emit_line_nosub('```')
+            emit_empty()
         in_code_section = not in_code_section
-        emit_line(line)
     elif line_match.match(line):
         emit_line(line)
     elif space_match.match(line):

@@ -1,6 +1,4 @@
 #pragma once
-
-//
 // # IPv6 / IPv4 address parser in C
 //
 //     A self-contained embeddable address parsing library.
@@ -10,35 +8,38 @@
 //
 // [![Build Status](https://travis-ci.org/jrepp/ipv6-parse.svg?branch=master)](https://travis-ci.org/jrepp/ipv6-parse)
 //
-// # Features
+// ## Features
 //
 // - Full support for the IPv6 address specification
-//     - Abbreviations ::1, ff::1:2
-//     - Embedded IPv4 ffff::1.2.3.4
-//     - CIDR notation ffff::/80
-//     - Port notation [::1]:1119
-//     - Combinations of the above [ffff::1.2.3.4/128]:1119
-// - IPv4 addresses and ports 1.2.3.4, 1.2.3.4:5555
+//   - Abbreviations `::1`, `ff::1:2`
+//   - Embedded IPv4 `ffff::1.2.3.4`
+//   - CIDR notation `ffff::/80`
+//   - Port notation `[::1]:1119`
+//   - Combinations of the above `[ffff::1.2.3.4/128]:1119`
+// - IPv4 addresses and ports `1.2.3.4`, `1.2.3.4:5555`
 // - Single function to parse both IPv4 and IPv6 addresses and ports
-// - Self contained and multi-plaform, eliminates problems with using built-in address parsing routines
+// - Self contained and multi-platform, eliminates problems with using built-in address parsing routines
 // - Diagnostic information from the parsing API
 // - Two way functionality address -> parse -> string -> parse
 // - Careful use of strings and pointers
 // - Comprehensive positive and negative tests
 //
 //
-// # IPv4 Compatibility Mode
+// ## IPv4 Compatibility Mode
 //
-//  See test.c: test_api_use_loopback_const
+// See test.c: test_api_use_loopback_const
+// ```c
 //     127.111.2.1
 //     uint16_t components[IPV6_NUM_COMPONENTS] = {
 //         0x7f6f,
 //         0x0201 }
+// ```
+//
 // - Addresses can be constructed directly in code and support the full two-way functionality
 //
-// # Building / Debugging
+// ## Building / Debugging
 //
-// Full tracing can be enabled by running cmake -DPARSE_TRACE=1
+// Full tracing can be enabled by running `cmake -DPARSE_TRACE=1`
 //
 
 #include <stddef.h>
@@ -53,7 +54,7 @@ extern "C" {
 /// Maximum size of a IPV
 extern const uint32_t IPV6_STRING_SIZE;
 
-// *ipv6_flag_t*
+// ### ipv6_flag_t
 // ===
 //
 // Flags are used to communicate which fields are filled out in the address structure
@@ -68,12 +69,12 @@ typedef enum {
 } ipv6_flag_t;
 // ~~~~
 
-// *ipv6_address_t*
+// ### ipv6_address_t
 // ===
 // Simplified address structure where the components are represented in
 // machine format, left to right [0..7]
 //
-// e.g. little-endian x86 mahinces:
+// e.g. little-endian x86 machines:
 //
 //      aa11:bb22:: -> 0xaa11, 0xbb22, 0x0000, ...
 //
@@ -107,7 +108,7 @@ typedef struct {
 // ~~~~
 
 
-// *ipv6_compare_t*
+// ### ipv6_compare_t
 // ===
 //
 // Result of ipv6_compare of two addresses
@@ -119,10 +120,10 @@ typedef enum {
     IPV6_COMPARE_MASK_MISMATCH,         // the CIDR mask does not match
     IPV6_COMPARE_PORT_MISMATCH,         // the port does not match
     IPV6_COMPARE_ADDRESS_MISMATCH,      // address components do not match
-} ipv6_compare_t;
+} ipv6_compare_result_t;
 // ~~~~
 
-// *ipv6_diag_event_t*
+// ### ipv6_diag_event_t
 // ===
 //
 // Event type emitted from diagnostic function
@@ -149,7 +150,7 @@ typedef enum {
 // ~~~~
 
 
-// *ipv6_diag_info_t*
+// ### ipv6_diag_info_t
 // ===
 //
 // Structure that carriers information about the diagnostic message
@@ -168,7 +169,7 @@ typedef struct {
 #define IPV6_API_DECL(name) name
 #define IPV6_API_DEF(name) name
 
-// *ipv6_diag_func_t*
+// ### ipv6_diag_func_t
 // ===
 //
 // A diagnostic function that receives information from parsing the address
@@ -180,7 +181,7 @@ typedef void (*ipv6_diag_func_t) (
     void* user_data);
 // ~~~~
 
-// *ipv6_from_str*
+// ### ipv6_from_str
 // ===
 //
 // Read an IPv6 address from a string, handles parsing a variety of format
@@ -195,7 +196,7 @@ bool IPV6_API_DECL(ipv6_from_str) (
 // ~~~~
 
 
-// *ipv6_from_str_diag*
+// ### ipv6_from_str_diag
 // ===
 //
 // Additional functionality parser that receives diagnostics information from parsing the address,
@@ -210,7 +211,7 @@ bool IPV6_API_DECL(ipv6_from_str_diag) (
     void* user_data);
 // ~~~~
 
-// *ipv6_to_str*
+// ### ipv6_to_str
 // ===
 //
 // Convert an IPv6 structure to an ASCII string.
@@ -226,7 +227,7 @@ char* IPV6_API_DECL(ipv6_to_str) (
 // ~~~~
 
 
-// *ipv6_compare*
+// ### ipv6_compare
 // ===
 //
 // Compare two addresses, 0 (IPV6_COMPARE_OK) if equal, else ipv6_compare_result_t.

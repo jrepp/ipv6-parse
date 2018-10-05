@@ -124,7 +124,7 @@ typedef struct {
     const char*             left;
     const char*             right;
     uint32_t                ignore_flags;
-    ipv6_compare_t          expected;
+    ipv6_compare_result_t   expected;
 } compare_test_data_t;
 
 
@@ -453,7 +453,7 @@ static void test_comparisons(test_status_t* status) {
             TEST_FAILED("    ipv6_from_str_diag failed - right (%s)\n", tests[i].right);
         }
 
-        ipv6_compare_t compare_result = ipv6_compare(&left, &right, tests[i].ignore_flags);
+        ipv6_compare_result_t compare_result = ipv6_compare(&left, &right, tests[i].ignore_flags);
         if (compare_result != tests[i].expected) {
             TEST_FAILED("    ipv6_compare failed (%s == %s [%08x]), compare result: %u, expected: %u\n",
                 tests[i].left, tests[i].right, tests[i].ignore_flags, compare_result, tests[i].expected);
