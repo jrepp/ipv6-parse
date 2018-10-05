@@ -55,7 +55,6 @@ extern "C" {
 extern const uint32_t IPV6_STRING_SIZE;
 
 // ### ipv6_flag_t
-// ===
 //
 // Flags are used to communicate which fields are filled out in the address structure
 // after parsing. Address components are assumed.
@@ -70,7 +69,7 @@ typedef enum {
 // ~~~~
 
 // ### ipv6_address_t
-// ===
+//
 // Simplified address structure where the components are represented in
 // machine format, left to right [0..7]
 //
@@ -89,7 +88,6 @@ typedef struct {
 
 
 // *ipv6_address_full_t*
-// ===
 //
 // Input / output type for round trip parsing and converting to string.
 //
@@ -109,7 +107,6 @@ typedef struct {
 
 
 // ### ipv6_compare_t
-// ===
 //
 // Result of ipv6_compare of two addresses
 //
@@ -124,7 +121,6 @@ typedef enum {
 // ~~~~
 
 // ### ipv6_diag_event_t
-// ===
 //
 // Event type emitted from diagnostic function
 //
@@ -151,7 +147,6 @@ typedef enum {
 
 
 // ### ipv6_diag_info_t
-// ===
 //
 // Structure that carriers information about the diagnostic message
 //
@@ -170,7 +165,6 @@ typedef struct {
 #define IPV6_API_DEF(name) name
 
 // ### ipv6_diag_func_t
-// ===
 //
 // A diagnostic function that receives information from parsing the address
 //
@@ -182,7 +176,6 @@ typedef void (*ipv6_diag_func_t) (
 // ~~~~
 
 // ### ipv6_from_str
-// ===
 //
 // Read an IPv6 address from a string, handles parsing a variety of format
 // information from the spec. Will also handle IPv4 address passed in without
@@ -197,7 +190,6 @@ bool IPV6_API_DECL(ipv6_from_str) (
 
 
 // ### ipv6_from_str_diag
-// ===
 //
 // Additional functionality parser that receives diagnostics information from parsing the address,
 // including errors.
@@ -212,7 +204,6 @@ bool IPV6_API_DECL(ipv6_from_str_diag) (
 // ~~~~
 
 // ### ipv6_to_str
-// ===
 //
 // Convert an IPv6 structure to an ASCII string.
 //
@@ -228,7 +219,6 @@ char* IPV6_API_DECL(ipv6_to_str) (
 
 
 // ### ipv6_compare
-// ===
 //
 // Compare two addresses, 0 (IPV6_COMPARE_OK) if equal, else ipv6_compare_result_t.
 //
