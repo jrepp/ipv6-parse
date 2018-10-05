@@ -239,7 +239,7 @@ char* IPV6_API_DECL(ipv6_to_str) (
 // flags are passed in ignore_flags.
 //
 // ~~~~
-int32_t IPV6_API_DECL(ipv6_compare) (
+ipv6_compare_t IPV6_API_DECL(ipv6_compare) (
     const ipv6_address_full_t* a,
     const ipv6_address_full_t* b,
     uint32_t ignore_flags);

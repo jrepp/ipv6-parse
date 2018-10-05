@@ -409,7 +409,6 @@ static void test_comparisons(test_status_t* status) {
         // Ports
         { "1.2.3.4:12345",      "[::1.2.3.4]:12345",        IPV6_FLAG_IPV4_EMBED, IPV6_COMPARE_OK },
 
-
         // Masks
         { "[::1/32]:10", "[::1/32]:10",                     0, IPV6_COMPARE_OK },
         //{ "1.2.3.4:12345/16", "1.2.3.4:12345/16",           0, IPV6_COMPARE_OK },

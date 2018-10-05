@@ -968,7 +968,7 @@ char* IPV6_API_DEF(ipv6_to_str) (
 }
 
 //--------------------------------------------------------------------------------
-int32_t IPV6_API_DEF(ipv6_compare) (
+ipv6_compare_t IPV6_API_DEF(ipv6_compare) (
     const ipv6_address_full_t* a,
     const ipv6_address_full_t* b,
     uint32_t ignore_flags)
