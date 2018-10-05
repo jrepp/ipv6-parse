@@ -229,14 +229,14 @@ char* IPV6_API_DECL(ipv6_to_str) (
 // *ipv6_compare*
 // ===
 //
-// Compare two addresses, 0 if equal else ipv6_compare_result_t.
+// Compare two addresses, 0 (IPV6_COMPARE_OK) if equal, else ipv6_compare_result_t.
 //
 // Use IPV6_FLAG_HAS_MASK, IPV6_FLAG_HAS_PORT in ignore_flags to
 // ignore mask or port in comparisons.
 //
 // IPv4 embed and IPv4 compatible addresses will be compared as
-// equal if IPV6_FLAG_IPV4_EMBED or IPV6_FLAG_IPV4_COMPAT
-// is passed in ignore_flags.
+// equal if either IPV6_FLAG_IPV4_EMBED or IPV6_FLAG_IPV4_COMPAT
+// flags are passed in ignore_flags.
 //
 // ~~~~
 int32_t IPV6_API_DECL(ipv6_compare) (
