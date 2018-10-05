@@ -4,3 +4,9 @@
 #cmakedefine HAVE_STDIO_H 1
 #cmakedefine HAVE_STDARG_H 1
 #cmakedefine HAVE__SNPRINTF_S 1
+
+#if WIN32
+#pragma warning(disable: 4820) // Disable alignment errors in windows headers
+#pragma warning(disable: 4255) // Disable prototype () -> (void) conversion warning
+#pragma warning(disable: 5045) // Disable /Qspectre mitigation info warnings
+#endif
