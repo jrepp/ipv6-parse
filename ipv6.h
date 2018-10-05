@@ -26,6 +26,20 @@
 // - Careful use of strings and pointers
 // - Comprehensive positive and negative tests
 //
+//
+// # IPv4 Compatibility Mode
+//
+//  See test.c: test_api_use_loopback_const
+//     127.111.2.1
+//     uint16_t components[IPV6_NUM_COMPONENTS] = {
+//         0x7f6f,
+//         0x0201 }
+// - Addresses can be constructed directly in code and support the full two-way functionality
+//
+// # Building / Debugging
+//
+// Full tracing can be enabled by running cmake -DPARSE_TRACE=1
+//
 
 #include <stddef.h>
 #include <stdint.h>
@@ -49,8 +63,8 @@ extern const uint32_t IPV6_STRING_SIZE;
 typedef enum {
     IPV6_FLAG_HAS_PORT      = 0x00000001,   // the address specifies a port setting
     IPV6_FLAG_HAS_MASK      = 0x00000002,   // the address specifies a CIDR mask
-    IPV6_FLAG_IPV4_EMBED    = 0x00000002,   // the address has an embedded IPv4 address in the last 32bits
-    IPV6_FLAG_IPV4_COMPAT   = 0x00000004,   // the address is IPv4 compatible (1.2.3.4:5555)
+    IPV6_FLAG_IPV4_EMBED    = 0x00000004,   // the address has an embedded IPv4 address in the last 32bits
+    IPV6_FLAG_IPV4_COMPAT   = 0x00000008,   // the address is IPv4 compatible (1.2.3.4:5555)
 } ipv6_flag_t;
 // ~~~~
 
@@ -65,6 +79,8 @@ typedef enum {
 //
 // ~~~~
 #define IPV6_NUM_COMPONENTS 8
+#define IPV4_NUM_COMPONENTS 2
+#define IPV4_EMBED_INDEX 6
 typedef struct {
     uint16_t                components[IPV6_NUM_COMPONENTS];
 } ipv6_address_t;
@@ -88,6 +104,22 @@ typedef struct {
     uint32_t                iface_len;      // number of bytes in the name of the interface
     uint32_t                flags;          // flags indicating features of address
 } ipv6_address_full_t;
+// ~~~~
+
+
+// *ipv6_compare_t*
+// ===
+//
+// Result of ipv6_compare of two addresses
+//
+// ~~~~
+typedef enum {
+    IPV6_COMPARE_OK = 0,
+    IPV6_COMPARE_FORMAT_MISMATCH,       // address differ in their
+    IPV6_COMPARE_MASK_MISMATCH,         // the CIDR mask does not match
+    IPV6_COMPARE_PORT_MISMATCH,         // the port does not match
+    IPV6_COMPARE_ADDRESS_MISMATCH,      // address components do not match
+} ipv6_compare_t;
 // ~~~~
 
 // *ipv6_diag_event_t*
@@ -197,12 +229,20 @@ char* IPV6_API_DECL(ipv6_to_str) (
 // *ipv6_compare*
 // ===
 //
-// Compare two addresses, 0 if equal, 1 if a greater, -1 if a lesser
+// Compare two addresses, 0 if equal else ipv6_compare_result_t.
+//
+// Use IPV6_FLAG_HAS_MASK, IPV6_FLAG_HAS_PORT in ignore_flags to
+// ignore mask or port in comparisons.
+//
+// IPv4 embed and IPv4 compatible addresses will be compared as
+// equal if IPV6_FLAG_IPV4_EMBED or IPV6_FLAG_IPV4_COMPAT
+// is passed in ignore_flags.
 //
 // ~~~~
 int32_t IPV6_API_DECL(ipv6_compare) (
     const ipv6_address_full_t* a,
-    const ipv6_address_full_t* b);
+    const ipv6_address_full_t* b,
+    uint32_t ignore_flags);
 // ~~~~
 
 #ifdef __cplusplus

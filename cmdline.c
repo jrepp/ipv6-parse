@@ -66,7 +66,8 @@ int main (int argc, const char** argv) {
             return 4;
         }
 
-        if (0 != ipv6_compare(&addr, &addr2)) {
+		// Allow embedded and compatible addresses to compare as equal
+        if (IPV6_COMPARE_OK != ipv6_compare(&addr, &addr2, IPV6_FLAG_IPV4_COMPAT)) {
             printf("- failed to compare: '%s' != '%s'\n", str, buffer);
             return 5;
         }
@@ -76,4 +77,5 @@ int main (int argc, const char** argv) {
 
     return 0;
 }
+
 

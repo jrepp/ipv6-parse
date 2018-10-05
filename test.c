@@ -24,6 +24,10 @@
 #include <winsock2.h>
 #endif
 
+#ifdef HAVE_WS_2_TCPIP_H
+#include <ws2tcpip.h>
+#endif
+
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -83,8 +87,8 @@
 
 // Capture high level test run status
 typedef struct {
-    size_t                  total_tests;
-    size_t                  failed_count;
+    uint32_t                total_tests;
+    uint32_t                failed_count;
 } test_status_t;
 
 // Structure to represent function over group of tests
@@ -111,16 +115,26 @@ typedef struct {
 typedef struct {
     const char*             message;
     ipv6_diag_event_t       event;
-    size_t                  calls;
+    uint32_t                calls;
 } diag_test_capture_t;
+
+
+// Representation of comparison test data
+typedef struct {
+    const char*             left;
+    const char*             right;
+    uint32_t                ignore_flags;
+    ipv6_compare_t          expected;
+} compare_test_data_t;
+
 
 // Comparison that converts inputs to strings for textual output
 #define COMPARE(a, b) compare(#a, a, #b, b)
 
-#define LENGTHOF(x) (sizeof(x)/sizeof(x[0]))
+#define LENGTHOF(x) ((uint32_t)(sizeof(x)/sizeof(x[0])))
 
 #define TEST_FAILED(...) \
-    printf("  FAILED %s:%d", __FILE__, __LINE__); \
+    printf("  FAILED %s:%d", (const char *)__FILE__, (int32_t)__LINE__); \
     printf(__VA_ARGS__); \
     failed = true;
 
@@ -192,7 +206,7 @@ static void test_parsing (test_status_t* status) {
     status->total_tests = LENGTHOF(tests);
     char* tostr = (char*)alloca(IPV6_STRING_SIZE);
 
-    for (size_t i = 0; i < status->total_tests; ++i) {
+    for (uint32_t i = 0; i < status->total_tests; ++i) {
         ipv6_address_full_t test;
         ipv6_address_full_t parsed;
         bool failed = false;
@@ -203,7 +217,7 @@ static void test_parsing (test_status_t* status) {
         //
         // Test the string conversion into the 'parsed' structure
         //
-        printf("ipv6_from_str %lu/%lu \"%s\"\n####\n",
+        printf("ipv6_from_str %u/%u \"%s\"\n####\n",
             i+1,
             status->total_tests,
             tests[i].input);
@@ -289,7 +303,7 @@ static void test_parsing_diag (test_status_t* status) {
 
     status->total_tests = LENGTHOF(tests);
 
-    for (size_t i = 0; i < status->total_tests; ++i) {
+    for (uint32_t i = 0; i < status->total_tests; ++i) {
         ipv6_address_full_t addr;
         diag_test_capture_t capture;
         bool failed = false;
@@ -297,7 +311,7 @@ static void test_parsing_diag (test_status_t* status) {
         memset(&addr, 0, sizeof(addr));
         memset(&capture, 0, sizeof(capture));
 
-        printf("ipv6_from_str_diag %lu/%lu \"%s\"\n####\n",
+        printf("ipv6_from_str_diag %u/%u \"%s\"\n####\n",
             i+1,
             status->total_tests,
             tests[i].input);
@@ -310,7 +324,7 @@ static void test_parsing_diag (test_status_t* status) {
                 &capture))
         {
             if (capture.calls != 1) {
-                TEST_FAILED("    ipv6_from_str_diag failed, wrong # diag calls: %lu\n",
+                TEST_FAILED("    ipv6_from_str_diag failed, wrong # diag calls: %u\n",
                     capture.calls);
             }
             else if (capture.message == NULL) {
@@ -324,12 +338,131 @@ static void test_parsing_diag (test_status_t* status) {
             }
         }
         else {
-            TEST_FAILED("    ipv6_from_str_diag was expected to fail with diagnostic");
+            TEST_FAILED("    ipv6_from_str_diag was expected to fail with diagnostic\n");
         }
 
         if (!failed) {
             printf("+ PASS\n\n");
         } else {
+            printf("- FAIL\n\n");
+            status->failed_count++;
+        }
+    }
+}
+
+// CIDR negative tests:
+//
+// The following are NOT legal representations of the above prefix:
+//
+// 2001:0DB8:0:CD3/60   may drop leading zeros, but not trailing
+//     zeros, within any 16-bit chunk of the address
+//
+// 2001:0DB8::CD30/60   address to left of "/" expands to
+//     2001:0DB8:0000:0000:0000:0000:0000:CD30
+//
+// 2001:0DB8::CD3/60    address to left of "/" expands to
+//     2001:0DB8:0000:0000:0000:0000:0000:0CD3
+//
+static void test_comparisons(test_status_t* status) {
+    compare_test_data_t tests[] = {
+        // Negative tests (addresses)
+        { "::1",                "127.0.0.1",                0, IPV6_COMPARE_FORMAT_MISMATCH },
+        { "::",                 "0.0.0.0",                  0, IPV6_COMPARE_FORMAT_MISMATCH },
+
+        // Negative tests (ports)
+        { "[::1]:1",            "[::1]:0",                  0, IPV6_COMPARE_PORT_MISMATCH },
+        { "[::1]:0",            "[::1]:1",                  0, IPV6_COMPARE_PORT_MISMATCH },
+        { "192.168.2.3:50000", "192.168.2.3:50001",         0, IPV6_COMPARE_PORT_MISMATCH },
+        { "192.168.2.3:50001", "192.168.2.3:50000",         0, IPV6_COMPARE_PORT_MISMATCH },
+
+        // Ignore port
+        { "1.2.3.4:12344",      "[::1.2.3.4]:12345",        IPV6_FLAG_HAS_PORT|IPV6_FLAG_IPV4_EMBED, IPV6_COMPARE_OK },  // ignore port
+        { "1.2.3.4:12345",      "[::1.2.3.4]:12344",        IPV6_FLAG_HAS_PORT|IPV6_FLAG_IPV4_EMBED, IPV6_COMPARE_OK },  // ignore port
+        { "[::1]:12345",        "[::1]:12344",              IPV6_FLAG_HAS_PORT, IPV6_COMPARE_OK },  // ignore port
+        { "[::1]:12344",        "[::1]:12345",              IPV6_FLAG_HAS_PORT, IPV6_COMPARE_OK },  // ignore port
+
+        // Negative tests (masks)
+        { "[::1/60]:1", "[::1/59]:1",                       0, IPV6_COMPARE_MASK_MISMATCH },
+        { "[::1/59]:1", "[::1/60]:1",                       0, IPV6_COMPARE_MASK_MISMATCH },
+        //{ "1.2.3.4:12345/15", "1.2.3.4:12345/16",           0, IPV6_COMPARE_MASK_MISMATCH },
+
+        // Ignore mask
+        { "[::1/60]:1", "[::1/59]:1",                       IPV6_FLAG_HAS_MASK, IPV6_COMPARE_OK },
+        { "[::1/59]:1", "[::1/60]:1",                       IPV6_FLAG_HAS_MASK, IPV6_COMPARE_OK },
+        //{ "1.2.3.4:12345/15", "1.2.3.4:12345/16",           IPV6_FLAG_HAS_MASK, IPV6_COMPARE_OK },
+
+        // IPv4 compatibility tests
+        { "::0.0.0.0",          "0.0.0.0",                  IPV6_FLAG_IPV4_EMBED, IPV6_COMPARE_OK },
+        { "::11.22.33.44",      "11.22.33.44",              IPV6_FLAG_IPV4_EMBED, IPV6_COMPARE_OK },
+        { "::11.22.33.44",      "::b16:212c",               IPV6_FLAG_IPV4_EMBED, IPV6_COMPARE_OK },
+        { "::11.22.33.44",       "0:0:0:0:0:0:b16:212c",    IPV6_FLAG_IPV4_EMBED, IPV6_COMPARE_OK },
+
+        // IPv4 explicit compatibility check tests
+        { "::0.0.0.0",          "0.0.0.0",                  0, IPV6_COMPARE_FORMAT_MISMATCH },
+        { "::11.22.33.44",      "11.22.33.44",              0, IPV6_COMPARE_FORMAT_MISMATCH },
+        { "::11.22.33.44",      "::b16:212c",               0, IPV6_COMPARE_FORMAT_MISMATCH },
+        { "::11.22.33.44",       "0:0:0:0:0:0:b16:212c",    0, IPV6_COMPARE_FORMAT_MISMATCH },
+
+        // Expansions
+        { "1:0:0:0:0:0:0:0",    "1::",                      0, IPV6_COMPARE_OK },
+
+        // Ports
+        { "1.2.3.4:12345",      "[::1.2.3.4]:12345",        IPV6_FLAG_IPV4_EMBED, IPV6_COMPARE_OK },
+
+
+        // Masks
+        { "[::1/32]:10", "[::1/32]:10",                     0, IPV6_COMPARE_OK },
+        //{ "1.2.3.4:12345/16", "1.2.3.4:12345/16",           0, IPV6_COMPARE_OK },
+    };
+
+    status->total_tests = LENGTHOF(tests);
+
+    for (uint32_t i = 0; i < status->total_tests; ++i) {
+        ipv6_address_full_t left, right;
+        diag_test_capture_t capture;
+        bool failed = false;
+
+        memset(&left, 0, sizeof(left));
+        memset(&right, 0, sizeof(right));
+        memset(&capture, 0, sizeof(capture));
+
+        printf("ipv6_from_str_diag %u/%u \"%s\" == \"%s\", %d\n####\n",
+            (uint32_t)i + 1,
+            status->total_tests,
+            tests[i].left,
+            tests[i].right,
+            tests[i].expected);
+
+        if (!ipv6_from_str_diag(
+            tests[i].left,
+            strlen(tests[i].left),
+            &left,
+            test_parsing_diag_fn,
+            &capture))
+        {
+            TEST_FAILED("    ipv6_from_str_diag failed - left (%s)\n", tests[i].left);
+        }
+
+        if (!ipv6_from_str_diag(
+            tests[i].right,
+            strlen(tests[i].right),
+            &right,
+            test_parsing_diag_fn,
+            &capture))
+        {
+            TEST_FAILED("    ipv6_from_str_diag failed - right (%s)\n", tests[i].right);
+        }
+
+        ipv6_compare_t compare_result = ipv6_compare(&left, &right, tests[i].ignore_flags);
+        if (compare_result != tests[i].expected) {
+            TEST_FAILED("    ipv6_compare failed (%s == %s [%08x]), compare result: %u, expected: %u\n",
+                tests[i].left, tests[i].right, tests[i].ignore_flags, compare_result, tests[i].expected);
+        }
+
+        if (!failed) {
+            printf("+ PASS\n\n");
+        }
+        else {
             printf("- FAIL\n\n");
             status->failed_count++;
         }
@@ -342,20 +475,21 @@ static void test_api_use_loopback_const (test_status_t* status) {
     status->total_tests = 1;
 
     // test using the host order network constant directly in an ipv6_address_full_t
-    const uint32_t LOOPBACK = 0x7f000001;
-    const char LOOPBACK_STR[] = "127.0.0.1";
-    uint16_t components[IPV6_NUM_COMPONENTS] = {
-        LOOPBACK >> 16,
-        LOOPBACK & 0xffff,
-        0 };
+    static const uint32_t TESTADDR = 0x7f6f0201;
+    static const char TESTADDR_STR[] = "127.111.2.1";
+
+    uint16_t components[IPV6_NUM_COMPONENTS];
+    memset(components, 0, sizeof(components));
+    components[0] = TESTADDR >> 16;
+    components[1] = TESTADDR & 0xffff;
 
     struct in_addr in_addr;
 #if WIN32
-    inet_pton(AF_INET, LOOPBACK_STR, &in_addr);
+    inet_pton(AF_INET, TESTADDR_STR, &in_addr);
 #else
-    inet_aton(LOOPBACK_STR, &in_addr);
+    inet_aton(TESTADDR_STR, &in_addr);
 #endif
-    if (LOOPBACK != ntohl(in_addr.s_addr)) {
+    if (TESTADDR != ntohl(in_addr.s_addr)) {
         TEST_FAILED("    ntohl(inet_aton(LOOPBACK_STR)) does not match host constant\n");
     }
 
@@ -366,7 +500,7 @@ static void test_api_use_loopback_const (test_status_t* status) {
     addr.flags |= IPV6_FLAG_IPV4_COMPAT;
 
     ipv6_address_full_t parsed;
-    if (!ipv6_from_str(LOOPBACK_STR, sizeof(LOOPBACK_STR) -1, &parsed)) {
+    if (!ipv6_from_str(TESTADDR_STR, sizeof(TESTADDR_STR) -1, &parsed)) {
         TEST_FAILED("    ipv6_from_str failed on LOOPBACK_STR\n");
     }
 
@@ -397,20 +531,21 @@ static void test_api_use_loopback_const (test_status_t* status) {
     }
 }
 
-int main () {
+int main (void) {
     test_group_t test_groups[] = {
         { "test_parsing", test_parsing },
         { "test_parsing_diag", test_parsing_diag },
+        { "test_comparisons", test_comparisons },
         { "test_api_use_loopback_const", test_api_use_loopback_const }
     };
 
-    for (size_t i = 0; i < LENGTHOF(test_groups); ++i) {
+    for (uint32_t i = 0; i < LENGTHOF(test_groups); ++i) {
         test_status_t status = { 0, };
         printf("%s\n===\n", test_groups[i].name);
         test_groups[i].func(&status);
 
-        printf("\n%lu/%lu passed.\n\n",
-            (status.total_tests - status.failed_count),
+        printf("\n%u/%u passed.\n\n",
+            (uint32_t)(status.total_tests - status.failed_count),
             status.total_tests);
     }
 

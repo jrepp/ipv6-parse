@@ -1,6 +1,7 @@
 #include "ipv6.h"
 #include "ipv6_config.h"
 
+
 #ifdef HAVE_STDIO_H
 #include <stdio.h>
 #endif
@@ -14,9 +15,9 @@
 #endif
 
 #if defined(PARSE_TRACE)
-#define TRACE(...) printf(__VA_ARGS__)
+#define IPV6_TRACE(...) printf(__VA_ARGS__)
 #else
-#define TRACE(...)
+#define IPV6_TRACE(...)
 #endif
 
 #ifdef HAVE__SNPRINTF_S
@@ -76,7 +77,7 @@ typedef enum {
 } ipv6_reader_state_flag_t;
 
 //
-// Reader state encapsulates the process of tokenizing and processing
+// Reader state encapsulates the process of token-izing and processing
 // the incoming address specification
 //
 typedef struct ipv6_reader_state_t {
@@ -148,12 +149,12 @@ static const char* eventclass_str (eventclass_t input)
 // Update the current state logging the transition
 //
 #define CHANGE_STATE(value) \
-    TRACE("  * %s -> %s %s:%u\n", \
+    IPV6_TRACE("  * %s -> %s %s:%u\n", \
         state_str(state->current), state_str(value), __FILE__, (uint32_t)__LINE__); \
     state->current = value;
 
 #define BEGIN_TOKEN(offset) \
-    TRACE("  * %s: token begin at %u\n", state_str(state->current), state->position + offset); \
+    IPV6_TRACE("  * %s: token begin at %u\n", state_str(state->current), state->position + offset); \
     state->token_position = state->position + offset; \
     state->token_len = 0; \
 
@@ -161,7 +162,7 @@ static const char* eventclass_str (eventclass_t input)
 // Indicate the presence of an invalid event class character for the current state
 //
 #define INVALID_INPUT() \
-    TRACE("invalid input class (%d) in state: %s at position %d of '%s' (%c)\n", \
+    IPV6_TRACE("invalid input class (%d) in state: %s at position %d of '%s' (%c)\n", \
         input, state_str(state->current), state->position, state->input, state->input[state->position]); \
     ipv6_error(state, IPV6_DIAG_INVALID_INPUT, "Invalid input"); \
     return;
@@ -171,7 +172,7 @@ static const char* eventclass_str (eventclass_t input)
 //
 #define VALIDATE(msg, diag, cond, action) \
     if (!(cond)) { \
-        TRACE("  failed '!" #cond "' in state: %s at position %d of '%s'\n\n", \
+        IPV6_TRACE("  failed '!" #cond "' in state: %s at position %d of '%s'\n\n", \
             state_str(state->current), state->position, state->input); \
         ipv6_error(state, diag, msg); \
         action; \
@@ -265,7 +266,7 @@ static int32_t read_hexidecimal_token (ipv6_reader_state_t* state)
 static void ipv6_parse_component (ipv6_reader_state_t* state) {
     int32_t component = read_hexidecimal_token(state);
 
-    TRACE("  * ipv6 address component %4x (%d)\n", (uint16_t)component, component);
+    IPV6_TRACE("  * ipv6 address component %4x (%d)\n", (uint16_t)component, component);
 
     VALIDATE("Only 8 16bit components are allowed",
             IPV6_DIAG_V6_BAD_COMPONENT_COUNT,
@@ -288,7 +289,7 @@ static void ipv6_parse_component (ipv6_reader_state_t* state) {
 static void ipv4_parse_component (ipv6_reader_state_t* state) {
     int32_t octet = read_decimal_token(state);
 
-    TRACE("  * ipv4 address octet %2x (%d)\n", (uint8_t)octet, octet);
+    IPV6_TRACE("  * ipv4 address octet %2x (%d)\n", (uint8_t)octet, octet);
 
     VALIDATE("Only 4 8bit components are allowed in an IPv4 embedding",
         IPV6_DIAG_V4_BAD_COMPONENT_COUNT,
@@ -363,7 +364,7 @@ static void ipv6_state_transition (
     ipv6_reader_state_t* state,
     eventclass_t input)
 {
-    TRACE("  * transition input: %s <- %s\n", state_str(state->current), eventclass_str(input));
+    IPV6_TRACE("  * transition input: %s <- %s\n", state_str(state->current), eventclass_str(input));
 
     switch (state->current) {
         default:
@@ -455,7 +456,7 @@ static void ipv6_state_transition (
                             return);
 
                         // Backwards compatibility marker for pure IPv4 address
-                        if (state->components == 0) {
+                        if (!(state->flags & READER_FLAG_ZERORUN) && state->components == 0) {
                             state->flags |= READER_FLAG_IPV4_COMPAT;
                         }
 
@@ -500,7 +501,7 @@ static void ipv6_state_transition (
                     state->zerorun = state->components;
                     state->flags |= READER_FLAG_ZERORUN;
 
-                    TRACE("  * zero run index: %d\n", state->zerorun);
+                    IPV6_TRACE("  * zero run index: %d\n", state->zerorun);
                     break;
 
                 case EC_WHITESPACE:
@@ -657,7 +658,7 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     state.address_full = out;
 
     while (*cp && cp < ep) {
-        TRACE(
+        IPV6_TRACE(
             "  * parse state: %s, cp: '%c' (%02x) position: %d, flags: %08x\n",
             state_str(state.current),
             *cp,
@@ -726,6 +727,18 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     // Treat the end of input as whitespace to simplify state transitions
     ipv6_state_transition(&state, EC_WHITESPACE);
 
+	// Early out if there was an error processing the string
+	if ((state.flags & READER_FLAG_ERROR) != 0) {
+		return false;
+	}
+
+	// If an IPv4 compatible address was specified the rest of the IPv6 collapsing
+	// rules can be skipped
+	if ((state.flags & READER_FLAG_IPV4_COMPAT) != 0) {
+		state.address_full->flags |= IPV6_FLAG_IPV4_COMPAT;
+		return true;
+	}
+
     // Mark the presence of embedded IPv4 addresses
     if (state.flags & READER_FLAG_IPV4_EMBEDDING) {
         if (state.v4_octets != 4) {
@@ -734,18 +747,6 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
         } else {
             state.address_full->flags |= IPV6_FLAG_IPV4_EMBED;
         }
-    }
-
-    // Early out if there was an error processing the string
-    if ((state.flags & READER_FLAG_ERROR) != 0) {
-        return false;
-    }
-
-    // If an IPv4 compatible address was specified the rest of the IPv6 collapsing
-    // rules can be skipped
-    if ((state.flags & READER_FLAG_IPV4_COMPAT) != 0) {
-        state.address_full->flags |= IPV6_FLAG_IPV4_COMPAT;
-        return true;
     }
 
     // If there was no abbreviated run all components should be specified
@@ -765,11 +766,11 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     int32_t move_count = state.components - state.zerorun;
     int32_t target = IPV6_NUM_COMPONENTS - move_count;
     if (move_count < 0 || move_count > IPV6_NUM_COMPONENTS) {
-        TRACE("invalid move_count: %d\n", move_count);
+        IPV6_TRACE("invalid move_count: %d\n", move_count);
         return false;
     }
     if (target < 0 || target + move_count > IPV6_NUM_COMPONENTS) {
-        TRACE("invalid target location: %d:%d\n", target, move_count);
+        IPV6_TRACE("invalid target location: %d:%d\n", target, move_count);
         return false;
     }
 
@@ -806,7 +807,7 @@ bool IPV6_API_DEF(ipv6_from_str) (
 }
 
 #define OUTPUT_TRUNCATED() \
-    TRACE("  ! buffer truncated at position %u\n", (uint32_t)(wp - out)); \
+    IPV6_TRACE("  ! buffer truncated at position %u\n", (uint32_t)(wp - out)); \
     *out = '\0';
 
 //--------------------------------------------------------------------------------
@@ -833,7 +834,7 @@ char* IPV6_API_DEF(ipv6_to_str) (
     if (in->flags & IPV6_FLAG_IPV4_COMPAT) {
         const uint32_t host_ipv4 = components[0] << 16 | components[1];
         if (in->flags & IPV6_FLAG_HAS_PORT) {
-            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d:%d", 
+            platform_snprintf(token, sizeof(token), "%d.%d.%d.%d:%d",
                 (uint8_t)(host_ipv4 >> 24),
                 (uint8_t)(host_ipv4 >> 16),
                 (uint8_t)(host_ipv4 >> 8),
@@ -969,39 +970,72 @@ char* IPV6_API_DEF(ipv6_to_str) (
 //--------------------------------------------------------------------------------
 int32_t IPV6_API_DEF(ipv6_compare) (
     const ipv6_address_full_t* a,
-    const ipv6_address_full_t* b)
+    const ipv6_address_full_t* b,
+    uint32_t ignore_flags)
 {
-    int32_t compare;
+    const uint16_t* a_components;
+    const uint16_t* b_components;
+    uint32_t num_components;
 
-    // First compare the components in order
-    for (uint32_t i = 0; i < IPV6_NUM_COMPONENTS; ++i) {
-        compare = a->address.components[i] - b->address.components[i];
-        if (compare != 0) {
-            return compare;
+    // Mask out flags for comparison
+    uint32_t compare_flags = (IPV6_FLAG_HAS_MASK | IPV6_FLAG_HAS_PORT) & ~ignore_flags;
+
+    // Treat any compatibility or embedded address as IPv4
+#define HAS_IPV4(flags) (((flags) & (IPV6_FLAG_IPV4_COMPAT|IPV6_FLAG_IPV4_EMBED)) != 0)
+
+    // Special case format selection:
+    //
+    // Allow comparison between embedded and compatible addresses
+    //
+    if (0 != (ignore_flags & (IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_IPV4_COMPAT))
+        && (HAS_IPV4(a->flags) || HAS_IPV4(b->flags)))
+    {
+        num_components = IPV4_NUM_COMPONENTS;
+        if (a->flags & IPV6_FLAG_IPV4_COMPAT)
+            a_components = &a->address.components[0];
+        else
+            a_components = &a->address.components[IPV4_EMBED_INDEX];
+        if (b->flags & IPV6_FLAG_IPV4_COMPAT)
+            b_components = &b->address.components[0];
+        else
+            b_components = &b->address.components[IPV4_EMBED_INDEX];
+    }
+    else {
+        compare_flags |= (IPV6_FLAG_IPV4_EMBED | IPV6_FLAG_IPV4_COMPAT);
+        num_components = IPV6_NUM_COMPONENTS;
+        a_components = &a->address.components[0];
+        b_components = &b->address.components[0];
+    }
+
+    // Make sure desired features are the same
+    if ((a->flags & compare_flags) != (b->flags & compare_flags)) {
+        return IPV6_COMPARE_FORMAT_MISMATCH;
+    }
+
+    // Compare the desired number of components in order
+    for (uint32_t i = 0; i < num_components; ++i) {
+        if (a_components[i] != b_components[i]) {
+            return IPV6_COMPARE_ADDRESS_MISMATCH;
         }
     }
 
-    // Make sure features are the same
-    compare = a->flags - b->flags;
-    if (compare != 0) {
-        return compare;
-    }
-
     // Compare port
-    if (a->flags & IPV6_FLAG_HAS_PORT) {
-        compare = a->port - b->port;
-        if (compare != 0) {
-            return compare;
+    if (   ((ignore_flags & IPV6_FLAG_HAS_PORT) == 0)
+        && ((a->flags & IPV6_FLAG_HAS_PORT) || (b->flags & IPV6_FLAG_HAS_PORT)))
+    {
+        if (a->port != b->port) {
+            return IPV6_COMPARE_PORT_MISMATCH;
         }
     }
 
     // Compare mask
-    if (a->flags & IPV6_FLAG_HAS_MASK) {
-        compare = a->mask - b->mask;
-        if (compare != 0) {
-            return compare;
+    if (   ((ignore_flags & IPV6_FLAG_HAS_MASK) == 0)
+        && ((a->flags & IPV6_FLAG_HAS_MASK) || (b->flags & IPV6_FLAG_HAS_MASK)))
+    {
+        if (a->mask != b->mask) {
+            return IPV6_COMPARE_MASK_MISMATCH;
         }
     }
 
-    return 0;
+    return IPV6_COMPARE_OK;
 }
