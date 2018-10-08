@@ -210,8 +210,11 @@ bool IPV6_API_DECL(ipv6_from_str_diag) (
 // The conversion will flatten zero address components according to the address
 // formatting specification. For example: ffff:0:0:0:0:0:0:1 -> ffff::1
 //
+// Requires output_bytes 
+// Returns the size in bytes of the string minus the nul byte.
+//
 // ~~~~
-char* IPV6_API_DECL(ipv6_to_str) (
+size_t IPV6_API_DECL(ipv6_to_str) (
     const ipv6_address_full_t* in,
     char* output,
     size_t output_bytes);

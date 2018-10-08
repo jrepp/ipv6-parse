@@ -727,23 +727,29 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
     // Treat the end of input as whitespace to simplify state transitions
     ipv6_state_transition(&state, EC_WHITESPACE);
 
-	// Early out if there was an error processing the string
-	if ((state.flags & READER_FLAG_ERROR) != 0) {
-		return false;
-	}
+    // Early out if there was an error processing the string
+    if ((state.flags & READER_FLAG_ERROR) != 0) {
+        return false;
+    }
 
-	// If an IPv4 compatible address was specified the rest of the IPv6 collapsing
-	// rules can be skipped
-	if ((state.flags & READER_FLAG_IPV4_COMPAT) != 0) {
-		state.address_full->flags |= IPV6_FLAG_IPV4_COMPAT;
-		return true;
-	}
+    // If an IPv4 compatible address was specified the rest of the IPv6 collapsing
+    // rules can be skipped
+    if ((state.flags & READER_FLAG_IPV4_COMPAT) != 0) {
+        if (state.v4_octets != 4) {
+            ipv6_error(&state, IPV6_DIAG_V4_BAD_COMPONENT_COUNT,
+                "IPv4 compatible address was used but required 4 octets");
+            return false;
+        }
+        state.address_full->flags |= IPV6_FLAG_IPV4_COMPAT;
+        return true;
+    }
 
     // Mark the presence of embedded IPv4 addresses
     if (state.flags & READER_FLAG_IPV4_EMBEDDING) {
         if (state.v4_octets != 4) {
             ipv6_error(&state, IPV6_DIAG_V4_BAD_COMPONENT_COUNT,
                     "IPv4 address embedding was used but required 4 octets");
+            return false;
         } else {
             state.address_full->flags |= IPV6_FLAG_IPV4_EMBED;
         }
@@ -808,29 +814,32 @@ bool IPV6_API_DEF(ipv6_from_str) (
 
 #define OUTPUT_TRUNCATED() \
     IPV6_TRACE("  ! buffer truncated at position %u\n", (uint32_t)(wp - out)); \
-    *out = '\0';
+    output_bytes = 0; \
+    *output = '\0';
 
 //--------------------------------------------------------------------------------
-char* IPV6_API_DEF(ipv6_to_str) (
+size_t IPV6_API_DEF(ipv6_to_str) (
     const ipv6_address_full_t* in,
-    char *out,
-    size_t size)
+    char *output,
+    size_t output_bytes)
 {
-    if (size < 4) {
-        return NULL;
+    if (!in || !output) {
+        return 0;
     }
 
-    if (!in) {
-        return NULL;
+    if (output_bytes < 4) {
+        return 0;
     }
+
+    *output = '\0';
 
     const uint16_t* components = in->address.components;
-    char* wp = out; // write pointer
-    const char* ep = out + size - 1; // end pointer with one octet for nul
+    char* wp = output; // write pointer
+    const char* ep = output + output_bytes - 1; // end pointer with one octet for nul
     char token[16] = {0, };
 
-
-    // If the address is an IPv4 compat address shortcut the IPv6 rules and print an address or address:port
+    // If the address is an IPv4 compatible address shortcut the IPv6 rules and 
+    // print an address or address:port
     if (in->flags & IPV6_FLAG_IPV4_COMPAT) {
         const uint32_t host_ipv4 = components[0] << 16 | components[1];
         if (in->flags & IPV6_FLAG_HAS_PORT) {
@@ -851,8 +860,10 @@ char* IPV6_API_DEF(ipv6_to_str) (
         while (wp < ep && *cp) {
             *wp++ = *cp++;
         }
+
+        output_bytes = (size_t)(ptrdiff_t)(wp - output);
         *wp++ = '\0';
-        return out;
+        return output_bytes;
     }
 
     // For each component find the length of 0 digits that it covers (including
@@ -915,7 +926,7 @@ char* IPV6_API_DEF(ipv6_to_str) (
         if (i == longest_position && longest_span > 1) {
             if (wp + 2 >= ep) {
                 OUTPUT_TRUNCATED();
-                return NULL;
+                return output_bytes;
             }
 
             // The previous component already emitted a separator, or this is the
@@ -942,7 +953,7 @@ char* IPV6_API_DEF(ipv6_to_str) (
         if (wp == ep) {
             // Truncated, return a deterministic result
             OUTPUT_TRUNCATED();
-            return NULL;
+            return output_bytes;
         }
     }
 
@@ -962,9 +973,15 @@ char* IPV6_API_DEF(ipv6_to_str) (
         }
     }
 
-    *wp = '\0';
-
-    return out;
+    // Output truncated
+    if (wp == ep) {
+        OUTPUT_TRUNCATED();
+    }
+    else {
+        output_bytes = (size_t)(ptrdiff_t)(wp - output);
+        *wp = '\0';
+    }
+    return output_bytes;
 }
 
 //--------------------------------------------------------------------------------
