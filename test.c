@@ -151,6 +151,16 @@ static bool compare(const char* aname, const ipv6_address_full_t* a, const char*
                 bname, i, b->address.components[i]);
             return false;
         }
+        if (a->port != b->port) {
+            printf("  port doesn't match. %s: %d != %s: %d\n",
+                aname, a->port, bname, b->port);
+            return false;
+        }
+        if (a->mask != b->mask) {
+            printf("  mask doesn't match. %s: %d != %s: %d\n",
+                aname, a->mask, bname, b->mask);
+            return false;
+        }
     }
     return true;
 }
@@ -217,16 +227,17 @@ static void test_parsing (test_status_t* status) {
         { "2001:0db8:0a0b:12f0:0:0:0:1", { 0x2001, 0x0db8, 0x0a0b, 0x12f0, 0, 0, 0, 1 }, 0, 0, 0 },
         { "2001:db8:a0b:12f0::1", { 0x2001, 0xdb8, 0xa0b, 0x12f0, 0, 0, 0, 1 }, 0, 0, 0 },
         { "::ffff:1.2.3.4", { 0, 0, 0, 0, 0, 0xffff, 0x0102, 0x0304 }, 0, 0, IPV6_FLAG_IPV4_EMBED },
-        { "::ffff:1.2.3.4/32", { 0, 0, 0, 0, 0, 0xffff, 0x0102, 0x0304 }, 32, 0, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK },
-        { "[::ffff:1.2.3.4/32]:5678", { 0, 0, 0, 0, 0, 0xffff, 0x0102, 0x0304 }, 32, 5678, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
-        { "1:2:3:4:5:0:0:0/128", { 1, 2, 3, 4, 5, 0, 0, 0 }, 128, 0, IPV6_FLAG_HAS_MASK },
-        { "[1:2:3:4:5:0:0:0/128]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 128, 5678, IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
-        { "[1:2:3:4:5::]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 0, 5678, IPV6_FLAG_HAS_PORT },
-        { "[::1]:5678", { 0, 0, 0, 0, 0, 0, 0, 1 }, 0, 5678, IPV6_FLAG_HAS_PORT },
+        { "::ffff:1.2.3.4/32", { 0, 0, 0, 0, 0, 0xffff, 0x0102, 0x0304 }, 0, 32, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK },
+        { "[::ffff:1.2.3.4/32]:5678", { 0, 0, 0, 0, 0, 0xffff, 0x0102, 0x0304 }, 5678, 32, IPV6_FLAG_IPV4_EMBED|IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
+        { "1:2:3:4:5:0:0:0/128", { 1, 2, 3, 4, 5, 0, 0, 0 }, 0, 128, IPV6_FLAG_HAS_MASK },
+        { "[1:2:3:4:5:0:0:0/128]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 5678, 128, IPV6_FLAG_HAS_MASK|IPV6_FLAG_HAS_PORT },
+        { "[1:2:3:4:5::]:5678", { 1, 2, 3, 4, 5, 0, 0, 0 }, 5678, 0, IPV6_FLAG_HAS_PORT },
+        { "[::1]:5678", { 0, 0, 0, 0, 0, 0, 0, 1 }, 5678, 0, IPV6_FLAG_HAS_PORT },
         { "1.2.3.4", { 0x102, 0x304, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
-        { "1.2.3.4:5678", { 0x102, 0x304, 0, 0, 0, 0, 0, 0 }, 0, 5678, IPV6_FLAG_IPV4_COMPAT|IPV6_FLAG_HAS_PORT },
+        { "1.2.3.4:5678", { 0x102, 0x304, 0, 0, 0, 0, 0, 0 }, 5678,0,  IPV6_FLAG_IPV4_COMPAT|IPV6_FLAG_HAS_PORT },
         { "127.0.0.1", { 0x7f00, 0x0001, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
         { "255.255.255.255", { 0xffff, 0xffff, 0, 0, 0, 0, 0, 0 }, 0, 0, IPV6_FLAG_IPV4_COMPAT },
+        { "255.255.255.255:65123", { 0xffff, 0xffff, 0, 0, 0, 0, 0, 0 }, 65123, 0, IPV6_FLAG_IPV4_COMPAT|IPV6_FLAG_HAS_PORT },
     };
 
     char* tostr = (char*)alloca(IPV6_STRING_SIZE);
@@ -245,6 +256,13 @@ static void test_parsing (test_status_t* status) {
         printf("ipv6_from_str index: %u \"%s\"\n",
             i,
             tests[i].input);
+
+        if (!tests[i].port != !(tests[i].flags & IPV6_FLAG_HAS_PORT)) {
+            TEST_FAILED("  Test is poorly defined, port doesn't match the flag.");
+        }
+        if (!tests[i].mask != !(tests[i].flags & IPV6_FLAG_HAS_MASK)) {
+            TEST_FAILED("  Test is poorly defined, mask doesn't match the flag.");
+        }
 
         if (!ipv6_from_str(tests[i].input, strlen(tests[i].input), &parsed)) {
             TEST_FAILED("  ipv6_from_str failed\n");
