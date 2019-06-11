@@ -34,6 +34,7 @@
 
 const uint32_t IPV6_STRING_SIZE =
     sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
+const uint32_t IPV4_STRING_SIZE = sizeof "255.255.255.255:65535";
 
 //
 // Distinct states of parsing an address
@@ -836,7 +837,8 @@ size_t IPV6_API_DEF(ipv6_to_str) (
     const uint16_t* components = in->address.components;
     char* wp = output; // write pointer
     const char* ep = output + output_bytes - 1; // end pointer with one octet for nul
-    char token[16] = {0, };
+    char token[IPV4_STRING_SIZE];
+    token[0] = '\0';
 
     // If the address is an IPv4 compatible address shortcut the IPv6 rules and 
     // print an address or address:port
