@@ -3,6 +3,8 @@
 
     A self-contained embeddable address parsing library.
 
+![IPv6 Parse Diagram](ipv6-parse.png)
+
 Author: jacobrepp@gmail.com
 License: MIT
 
@@ -11,19 +13,19 @@ License: MIT
 
 ## Features
 
-- Full support for the IPv6 address specification
+- Single header, multi-platform
+- Full support for the IPv6 & IPv4 addresses, including CIDR
   - Abbreviations `::1`, `ff::1:2`
-  - Embedded IPv4 `ffff::1.2.3.4`
+  - Embedded IPv4 `ffff::10.11.82.1`
   - CIDR notation `ffff::/80`
   - Port notation `[::1]:1119`
+  - IPv4 `10.11.82.1`, `10.11.82.1:5555`, `10.0.0.0/8`
   - Combinations of the above `[ffff::1.2.3.4/128]:1119`
-- IPv4 addresses and ports `1.2.3.4`, `1.2.3.4:5555`
 - Single function to parse both IPv4 and IPv6 addresses and ports
-- Self contained and multi-platform, eliminates problems with using built-in address parsing routines
-- Diagnostic information from the parsing API
+- Rich diagnostic information regarding addresses formatting
 - Two way functionality address -> parse -> string -> parse
 - Careful use of strings and pointers
-- Comprehensive positive and negative tests
+- Comprehensive tests
 
 
 
@@ -191,8 +193,11 @@ Convert an IPv6 structure to an ASCII string.
 The conversion will flatten zero address components according to the address
 formatting specification. For example: ffff:0:0:0:0:0:0:1 -> ffff::1
 
+Requires output_bytes
+Returns the size in bytes of the string minus the nul byte.
+
 ```c
-char* IPV6_API_DECL(ipv6_to_str) (
+size_t IPV6_API_DECL(ipv6_to_str) (
     const ipv6_address_full_t* in,
     char* output,
     size_t output_bytes);
@@ -210,7 +215,7 @@ equal if either IPV6_FLAG_IPV4_EMBED or IPV6_FLAG_IPV4_COMPAT
 flags are passed in ignore_flags.
 
 ```c
-int32_t IPV6_API_DECL(ipv6_compare) (
+ipv6_compare_result_t IPV6_API_DECL(ipv6_compare) (
     const ipv6_address_full_t* a,
     const ipv6_address_full_t* b,
     uint32_t ignore_flags);
