@@ -9,4 +9,6 @@
 #pragma warning(disable: 4820) // Disable alignment errors in windows headers
 #pragma warning(disable: 4255) // Disable prototype () -> (void) conversion warning
 #pragma warning(disable: 5045) // Disable /Qspectre mitigation info warnings
+#pragma warning(disable: 4061) // Disable specified enumerator identifier is not explicitly handled by a case level
+#pragma warning(disable: 4034)
 #endif
