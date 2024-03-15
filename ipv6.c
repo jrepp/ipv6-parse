@@ -28,6 +28,23 @@
     snprintf(buffer, bytes, format, __VA_ARGS__)
 #endif
 
+
+// Original core address RFC 3513: https://tools.ietf.org/html/rfc3513
+// Replacement address RFC 4291: https://tools.ietf.org/html/rfc4291
+
+// These constants are for self-documenting string formatting expansions
+const uint32_t IPV6_STRING_SIZE =
+    sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
+const uint32_t IPV4_STRING_SIZE = sizeof "255.255.255.255:65535";
+
+// Sanity check the string sizes
+#ifndef STATIC_ASSERT
+#define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND) ? 1 : -1]
+#endif
+
+STATIC_ASSERT(IPV6_STRING_SIZE == 66, invalid_ipv6_string_size);
+STATIC_ASSERT(IPV4_STRING_SIZE == 22, invalid_ipv4_string_size);
+
 //
 // Distinct states of parsing an address
 //
@@ -715,7 +732,7 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
         return false;
     }
 
-    if (input_bytes > 66) {
+    if (input_bytes > IPV6_STRING_SIZE) {
         ipv6_error(&state, IPV6_DIAG_STRING_SIZE_EXCEEDED,
             "Input string size exceeded");
         return false;
@@ -910,9 +927,9 @@ size_t IPV6_API_DEF(ipv6_to_str) (
     const uint16_t* components = in->address.components;
     char* wp = output; // write pointer
     const char* ep = output + output_bytes - 1; // end pointer with one octet for nul
-    char token[22] = {0};
+    char token[IPV4_STRING_SIZE] = {0};
 
-    // If the address is an IPv4 compatible address shortcut the IPv6 rules and
+    // If the address is an IPv4 compatible address shortcut the IPv6 rules and 
     // print an address or address:port
     if (in->flags & IPV6_FLAG_IPV4_COMPAT) {
         int32_t n = platform_snprintf(token, sizeof(token), "%d.%d.%d.%d",
