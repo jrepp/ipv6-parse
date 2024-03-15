@@ -33,9 +33,10 @@
 // Replacement address RFC 4291: https://tools.ietf.org/html/rfc4291
 
 // These constants are for self-documenting string formatting expansions
-const uint32_t IPV6_STRING_SIZE =
-    sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
-const uint32_t IPV4_STRING_SIZE = sizeof "255.255.255.255:65535";
+// sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
+const uint32_t IPV6_STRING_SIZE = 66;
+// sizeof "255.255.255.255:65535";
+const uint32_t IPV4_STRING_SIZE = 22;
 
 //
 // Distinct states of parsing an address
