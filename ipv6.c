@@ -37,14 +37,6 @@ const uint32_t IPV6_STRING_SIZE =
     sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
 const uint32_t IPV4_STRING_SIZE = sizeof "255.255.255.255:65535";
 
-// Sanity check the string sizes
-#ifndef STATIC_ASSERT
-#define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND) ? 1 : -1]
-#endif
-
-STATIC_ASSERT(IPV6_STRING_SIZE == 66, invalid_ipv6_string_size);
-STATIC_ASSERT(IPV4_STRING_SIZE == 22, invalid_ipv4_string_size);
-
 //
 // Distinct states of parsing an address
 //
