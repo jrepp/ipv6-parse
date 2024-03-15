@@ -55,8 +55,12 @@ extern "C" {
 #endif
 
 
-/// Maximum size of a IPV
-extern const uint32_t IPV6_STRING_SIZE;
+// These constants are for self-documenting string formatting expansions
+// sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
+#define IPV6_STRING_SIZE 66
+
+// sizeof "255.255.255.255:65535";
+#define IPV4_STRING_SIZE 22
 
 // ### ipv6_flag_t
 //

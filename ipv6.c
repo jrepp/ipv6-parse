@@ -32,12 +32,6 @@
 // Original core address RFC 3513: https://tools.ietf.org/html/rfc3513
 // Replacement address RFC 4291: https://tools.ietf.org/html/rfc4291
 
-// These constants are for self-documenting string formatting expansions
-// sizeof "[1234:1234:1234:1234:1234:1234:1234:1234/128%longinterface]:65535";
-const uint32_t IPV6_STRING_SIZE = 66;
-// sizeof "255.255.255.255:65535";
-const uint32_t IPV4_STRING_SIZE = 22;
-
 //
 // Distinct states of parsing an address
 //
@@ -907,6 +901,9 @@ size_t IPV6_API_DEF(ipv6_to_str) (
     char *output,
     size_t output_bytes)
 {
+    char token[IPV4_STRING_SIZE] = {0,};
+    const uint16_t *components;
+
     if (!in || !output) {
         return 0;
     }
@@ -917,10 +914,10 @@ size_t IPV6_API_DEF(ipv6_to_str) (
 
     *output = '\0';
 
-    const uint16_t* components = in->address.components;
+    components = in->address.components;
     char* wp = output; // write pointer
     const char* ep = output + output_bytes - 1; // end pointer with one octet for nul
-    char token[IPV4_STRING_SIZE] = {0};
+
 
     // If the address is an IPv4 compatible address shortcut the IPv6 rules and 
     // print an address or address:port
