@@ -140,7 +140,6 @@ typedef struct {
 #define TEST_FAILED(...) \
     printf("  FAILED %s:%d", (const char *)__FILE__, (int32_t)__LINE__); \
     printf(__VA_ARGS__); \
-    failed = true; \
     status->failed_count++; \
     status->total_tests++; \
     assert(false);
@@ -301,7 +300,6 @@ static void test_parsing (test_status_t* status) {
     for (uint32_t i = 0; i < LENGTHOF(tests); ++i) {
         ipv6_address_full_t test;
         ipv6_address_full_t parsed;
-        bool failed = false;
 
         memset(&test, 0, sizeof(test));
         memset(&parsed, 0, sizeof(parsed));
@@ -407,7 +405,6 @@ static void test_parsing_diag (test_status_t* status) {
     for (uint32_t i = 0; i < LENGTHOF(tests); ++i) {
         ipv6_address_full_t addr;
         diag_test_capture_t capture;
-        bool failed = false;
 
         memset(&addr, 0, sizeof(addr));
         memset(&capture, 0, sizeof(capture));
@@ -522,7 +519,6 @@ static void test_comparisons(test_status_t* status) {
     for (uint32_t i = 0; i < LENGTHOF(tests); ++i) {
         ipv6_address_full_t left, right;
         diag_test_capture_t capture;
-        bool failed = false;
 
         memset(&left, 0, sizeof(left));
         memset(&right, 0, sizeof(right));
@@ -573,7 +569,6 @@ static void test_comparisons(test_status_t* status) {
 
 static void test_api_use_loopback_const (test_status_t* status) {
     // Just treat all of the checks in this function as a single test
-    bool failed = false;
     status->total_tests = 1;
 
     // test using the host order network constant directly in an ipv6_address_full_t
@@ -643,7 +638,6 @@ static void test_api_use_loopback_const (test_status_t* status) {
 static void test_invalid_to_str(test_status_t* status) {
     ipv6_address_full_t address;
     const char* test_str = "::1:2:3:4:5";
-    bool failed;
 
     if (!ipv6_from_str_diag(test_str, strlen(test_str), &address, test_output_diag_fn, NULL)) {
         TEST_FAILED("    ipv6_from_str failed for %s\n", test_str);
@@ -666,7 +660,7 @@ static void test_invalid_to_str(test_status_t* status) {
         TEST_FAILED("    ipv6_to_str should not silently truncate");
     }
     else {
-        TEST_PASSED();
+        TEST_PASSED()
     }    
 }
 

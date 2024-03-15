@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -95,20 +95,25 @@ if (NOT IPV6_PARSE_LIBRARY_ONLY)
     set(IPV6_TEST_CONFIG_HEADER_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
     add_executable(ipv6-test ${ipv6_sources} "test.c")
+    add_executable(ipv6-fuzz ${ipv6_sources} "fuzz.c")
     add_executable(ipv6-cmd ${ipv6_sources} "cmdline.c")
 
     set_target_properties(ipv6-test PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
+    set_target_properties(ipv6-fuzz PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
     set_target_properties(ipv6-cmd PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
 
     target_include_directories(ipv6-test PRIVATE ${IPV6_CONFIG_HEADER_PATH} ${IPV6_TEST_CONFIG_HEADER_PATH})
+    target_include_directories(ipv6-fuzz PRIVATE ${IPV6_CONFIG_HEADER_PATH} ${IPV6_TEST_CONFIG_HEADER_PATH})
     target_include_directories(ipv6-cmd PRIVATE ${IPV6_CONFIG_HEADER_PATH})
 
     if (MSVC)
         target_link_libraries(ipv6-test ws2_32)
+        target_link_libraries(ipv6-fuzz ws2_32)
         target_link_libraries(ipv6-cmd ws2_32)
     endif ()
     enable_testing()
     add_test(NAME verification COMMAND bin/ipv6-test)
+    add_test(NAME fuzz COMMAND bin/ipv6-fuzz)
 endif ()
 
 add_library(ipv6-parse ${ipv6_sources})

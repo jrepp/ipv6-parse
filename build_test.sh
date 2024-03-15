@@ -1,19 +1,29 @@
 #!/bin/bash 
 
-set -e
+set -x
+set -eof pipefail
 
 # Generate the build_gmake folder
-if [ ! -d build_gmake ]; then
-    ./cmake_gmake.sh
-fi
+./cmake_gmake.sh
 
 # Create the test application
 pushd build_gmake
-make all
+make ipv6-test ipv6-fuzz
+
 
 # Run the tests collecting failures
-bin/ipv6-test > test_results.md
+pushd bin
+
+echo "running test with results in test_results.md"
+./ipv6-test > test_results.md
 failures=`grep -c FAIL test_results.md`
+
+# Run the fuzzer
+echo "fuzzing with results in fuzz_results.md"
+./ipv6-test > fuzz_results.md
+fuzz_result=$?
+
+popd
 popd
 
-echo "Completed test pass, ${failures} failures. See build_gmake/test_results.md"
+echo "Completed test pass, ${failures} failures. Fuzzer result: ${fuzz_result}."
