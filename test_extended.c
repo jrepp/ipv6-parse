@@ -123,12 +123,41 @@ static void test_uppercase_hex(test_status_t* status) {
 // Test zone ID / interface support
 //
 static void test_zone_ids(test_status_t* status) {
-    // Note: The implementation appears to recognize % but the STATE_IFACE
-    // handler is minimal and may not fully validate. We test that it at least
-    // parses the base address before the % sign.
-    test_data_t tests[] = {
-        { "fe80::1%e", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, 0, 0, 0 },
-        { "::1%l", { 0, 0, 0, 0, 0, 0, 0, 1 }, 0, 0, 0 },
+    struct zone_test {
+        const char* input;
+        uint16_t expected_addr[8];
+        const char* expected_iface;
+        uint32_t expected_iface_len;
+        bool should_succeed;
+    };
+
+    struct zone_test tests[] = {
+        // Basic zone IDs
+        { "fe80::1%eth0", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
+        { "::1%lo", { 0, 0, 0, 0, 0, 0, 0, 1 }, "lo", 2, true },
+        { "fe80::abcd%wlan0", { 0xfe80, 0, 0, 0, 0, 0, 0, 0xabcd }, "wlan0", 5, true },
+
+        // Interface names with numbers and special chars
+        { "fe80::1%eth0.100", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0.100", 8, true },
+        { "fe80::1%vlan123", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "vlan123", 7, true },
+        { "fe80::1%br-lan", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "br-lan", 6, true },
+        { "fe80::1%tun_vpn", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "tun_vpn", 7, true },
+
+        // Zone ID with CIDR mask
+        { "fe80::1/64%eth0", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
+
+        // Zone ID with brackets (for port notation)
+        { "[fe80::1%eth0]:8080", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
+
+        // Long interface name (15 chars - max allowed)
+        { "fe80::1%verylongifname", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "verylongifname", 14, true },
+        { "fe80::1%verylongifnam15", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "verylongifnam15", 15, true },
+
+        // Too long interface name (16+ chars - should fail per IFNAMSIZ)
+        { "fe80::1%verylongifname16", { 0, 0, 0, 0, 0, 0, 0, 0 }, NULL, 0, false },
+
+        // Empty interface name
+        { "fe80::1%", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "", 0, false },
     };
 
     for (uint32_t i = 0; i < LENGTHOF(tests); ++i) {
@@ -137,26 +166,86 @@ static void test_zone_ids(test_status_t* status) {
 
         printf("test_zone_ids index: %u \"%s\"\n", i, tests[i].input);
 
-        // Zone IDs should parse successfully
         bool result = ipv6_from_str(tests[i].input, strlen(tests[i].input), &parsed);
 
-        // The interface parsing may not be fully implemented
-        // Just verify it doesn't crash and processes what it can
-        if (result) {
+        if (tests[i].should_succeed) {
+            if (!result) {
+                TEST_FAILED("  Expected parsing to succeed but it failed\n");
+                continue;
+            }
+
+            // Verify address components
+            bool addr_match = true;
+            for (int j = 0; j < 8; ++j) {
+                if (parsed.address.components[j] != tests[i].expected_addr[j]) {
+                    addr_match = false;
+                    break;
+                }
+            }
+
+            if (!addr_match) {
+                TEST_FAILED("  Address components don't match\n");
+                continue;
+            }
+
+            // Verify interface name was captured
+            if (parsed.iface == NULL) {
+                TEST_FAILED("  Zone ID not captured\n");
+                continue;
+            }
+
+            if (parsed.iface_len != tests[i].expected_iface_len) {
+                TEST_FAILED("  Zone ID length mismatch: expected %u, got %u\n",
+                    tests[i].expected_iface_len, parsed.iface_len);
+                continue;
+            }
+
+            if (strncmp(parsed.iface, tests[i].expected_iface, parsed.iface_len) != 0) {
+                TEST_FAILED("  Zone ID content mismatch: expected '%s', got '%.*s'\n",
+                    tests[i].expected_iface, (int)parsed.iface_len, parsed.iface);
+                continue;
+            }
+
+            printf("  Zone ID captured: %.*s (len=%u)\n",
+                (int)parsed.iface_len, parsed.iface, parsed.iface_len);
+
+            // Test round-trip conversion
+            char buffer[IPV6_STRING_SIZE];
+            size_t len = ipv6_to_str(&parsed, buffer, sizeof(buffer));
+            if (len > 0) {
+                printf("  Round-trip: %s\n", buffer);
+
+                // Verify the output contains the zone ID
+                const char* zone_marker = strchr(buffer, '%');
+                if (zone_marker == NULL) {
+                    TEST_FAILED("  Round-trip output missing zone ID\n");
+                    continue;
+                }
+
+                // Verify zone ID matches
+                zone_marker++; // skip '%'
+                const char* zone_end = zone_marker;
+                while (*zone_end && *zone_end != ']' && *zone_end != '/' && *zone_end != ' ') {
+                    zone_end++;
+                }
+
+                size_t zone_len = zone_end - zone_marker;
+                if (zone_len != tests[i].expected_iface_len ||
+                    strncmp(zone_marker, tests[i].expected_iface, zone_len) != 0) {
+                    TEST_FAILED("  Round-trip zone ID mismatch\n");
+                    continue;
+                }
+            }
+
             TEST_PASSED();
-            // If parsing succeeded, check if iface pointer was set
-            if (parsed.iface != NULL) {
-                printf("  Zone ID captured: %.*s\n", (int)parsed.iface_len, parsed.iface);
-                TEST_PASSED();
+        } else {
+            // Should fail
+            if (result) {
+                TEST_FAILED("  Expected parsing to fail but it succeeded\n");
             } else {
-                // May not be fully implemented
-                printf("  Zone ID not captured (implementation incomplete)\n");
+                printf("  Correctly rejected invalid input\n");
                 TEST_PASSED();
             }
-        } else {
-            // If it fails, that's also acceptable - interface support may be partial
-            printf("  Zone ID parsing not fully supported\n");
-            TEST_PASSED();
         }
     }
 }
