@@ -3,3 +3,26 @@ build*/
 *.swo
 .idea/
 cmake-build-debug/
+
+# Coverage files
+*.gcov
+*.gcda
+*.gcno
+*.gcno.*
+*.gcda.*
+
+# Test binaries
+ipv6-test
+ipv6-test-*
+test-cov
+test-ext-cov
+
+# Generated config
+ipv6_config.h
+ipv6_test_config.h
+
+# Debug symbols
+*.dSYM/
+
+# Coverage build directory
+build_coverage/
