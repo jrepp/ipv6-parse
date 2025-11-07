@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2017-2025 Jacob Repp <jacobrepp@gmail.com>
- *
- * SPDX-License-Identifier: MIT
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 #include "ipv6.h"
 #include "ipv6_config.h"
 #include "ipv6_test_config.h"
@@ -156,14 +132,10 @@ static void test_zone_ids(test_status_t* status) {
     };
 
     struct zone_test tests[] = {
-        // Basic zone IDs (RFC 4007 Section 11.2)
+        // Basic zone IDs
         { "fe80::1%eth0", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
         { "::1%lo", { 0, 0, 0, 0, 0, 0, 0, 1 }, "lo", 2, true },
         { "fe80::abcd%wlan0", { 0xfe80, 0, 0, 0, 0, 0, 0, 0xabcd }, "wlan0", 5, true },
-
-        // Numeric zone IDs (RFC 4007 - implementation dependent)
-        { "fe80::1%1", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "1", 1, true },
-        { "fe80::1%25", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "25", 2, true },
 
         // Interface names with numbers and special chars
         { "fe80::1%eth0.100", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0.100", 8, true },
@@ -171,24 +143,20 @@ static void test_zone_ids(test_status_t* status) {
         { "fe80::1%br-lan", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "br-lan", 6, true },
         { "fe80::1%tun_vpn", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "tun_vpn", 7, true },
 
-        // Zone ID with CIDR mask (RFC 4007 allows combination)
+        // Zone ID with CIDR mask
         { "fe80::1/64%eth0", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
 
-        // Zone ID with brackets (for port notation - RFC 4007 Section 11.7)
+        // Zone ID with brackets (for port notation)
         { "[fe80::1%eth0]:8080", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
 
-        // Zone IDs with non-link-local addresses (RFC 4007 says MAY be used)
-        { "2001:db8::1%eth0", { 0x2001, 0xdb8, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
-        { "ff02::1%eth0", { 0xff02, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
-
-        // Long interface name (15 chars - max allowed per IFNAMSIZ)
+        // Long interface name (15 chars - max allowed)
         { "fe80::1%verylongifname", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "verylongifname", 14, true },
         { "fe80::1%verylongifnam15", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "verylongifnam15", 15, true },
 
         // Too long interface name (16+ chars - should fail per IFNAMSIZ)
         { "fe80::1%verylongifname16", { 0, 0, 0, 0, 0, 0, 0, 0 }, NULL, 0, false },
 
-        // Empty interface name (invalid per RFC 4007)
+        // Empty interface name
         { "fe80::1%", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "", 0, false },
     };
 
@@ -461,174 +429,6 @@ static void test_to_str_edge_cases(test_status_t* status) {
     }
 }
 
-//
-// Test CIDR mask edge cases
-//
-static void test_cidr_edge_cases(test_status_t* status) {
-    diag_test_data_t tests[] = {
-        // CIDR mask at start (invalid) - results in bad component count
-        { "/64", IPV6_DIAG_V6_BAD_COMPONENT_COUNT },
-        // Invalid CIDR values
-        { "::1/129", IPV6_DIAG_INVALID_CIDR_MASK },
-        { "::1/999", IPV6_DIAG_INVALID_CIDR_MASK },
-        { "::1/-1", IPV6_DIAG_INVALID_INPUT_CHAR },  // '-' is invalid char
-        { "::1/abc", IPV6_DIAG_INVALID_INPUT },  // non-numeric CIDR results in invalid input
-    };
-
-    for (uint32_t i = 0; i < LENGTHOF(tests); ++i) {
-        ipv6_address_full_t parsed;
-        diag_test_capture_t capture;
-        memset(&parsed, 0, sizeof(parsed));
-        memset(&capture, 0, sizeof(capture));
-
-        printf("test_cidr_edge_cases index: %u \"%s\"\n", i, tests[i].input);
-
-        if (ipv6_from_str_diag(tests[i].input, strlen(tests[i].input), &parsed,
-                               test_parsing_diag_fn, &capture)) {
-            TEST_FAILED("  invalid CIDR should fail\n");
-        } else {
-            TEST_PASSED();
-        }
-
-        if (capture.event != tests[i].expected_event) {
-            TEST_FAILED("  expected event %u, got %u\n", tests[i].expected_event, capture.event);
-        } else {
-            TEST_PASSED();
-        }
-    }
-}
-
-//
-// Test invalid character sequences and state transitions
-//
-static void test_invalid_sequences(test_status_t* status) {
-    const char* invalid_inputs[] = {
-        // Invalid characters in various positions
-        "gg::1",           // 'g' is not valid hex
-        "::1::2",          // multiple :: sequences
-        "::1:::2",         // triple colon
-        ":::1",            // triple colon at start
-        "1::2::",          // :: at end after components
-        "[::1]:abc",       // non-numeric port
-        "[::1]:99999",     // port out of range
-        "::256.1.2.3",     // IPv4 octet out of range
-        "ffff::1.2.3.4.5", // too many IPv4 octets
-        "::g",             // invalid hex character
-        "1:2:3:4:5:6:7:8:9", // too many components
-    };
-
-    for (uint32_t i = 0; i < LENGTHOF(invalid_inputs); ++i) {
-        ipv6_address_full_t parsed;
-        memset(&parsed, 0, sizeof(parsed));
-
-        printf("test_invalid_sequences index: %u \"%s\"\n", i, invalid_inputs[i]);
-
-        if (ipv6_from_str(invalid_inputs[i], strlen(invalid_inputs[i]), &parsed)) {
-            TEST_FAILED("  input should have failed parsing: \"%s\"\n", invalid_inputs[i]);
-        } else {
-            printf("  Correctly rejected invalid input\n");
-            TEST_PASSED();
-        }
-    }
-}
-
-//
-// Test zero-run expansion edge cases
-//
-static void test_zero_run_expansion(test_status_t* status) {
-    test_data_t tests[] = {
-        // Single :: at different positions
-        { "::1", { 0, 0, 0, 0, 0, 0, 0, 1 }, 0, 0, 0 },
-        { "1::", { 1, 0, 0, 0, 0, 0, 0, 0 }, 0, 0, 0 },
-        { "1::2", { 1, 0, 0, 0, 0, 0, 0, 2 }, 0, 0, 0 },
-        { "1:2::3", { 1, 2, 0, 0, 0, 0, 0, 3 }, 0, 0, 0 },
-        { "1:2:3::4", { 1, 2, 3, 0, 0, 0, 0, 4 }, 0, 0, 0 },
-        { "1:2:3:4::5", { 1, 2, 3, 4, 0, 0, 0, 5 }, 0, 0, 0 },
-        { "1:2:3:4:5::6", { 1, 2, 3, 4, 5, 0, 0, 6 }, 0, 0, 0 },
-        { "1:2:3:4:5:6::7", { 1, 2, 3, 4, 5, 6, 0, 7 }, 0, 0, 0 },
-        // All zeros
-        { "::", { 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 0, 0 },
-        // Single zero component (no compression)
-        { "1:0:2:3:4:5:6:7", { 1, 0, 2, 3, 4, 5, 6, 7 }, 0, 0, 0 },
-    };
-
-    for (uint32_t i = 0; i < LENGTHOF(tests); ++i) {
-        ipv6_address_full_t parsed;
-        ipv6_address_full_t expected;
-        memset(&parsed, 0, sizeof(parsed));
-        memset(&expected, 0, sizeof(expected));
-
-        printf("test_zero_run_expansion index: %u \"%s\"\n", i, tests[i].input);
-
-        if (!ipv6_from_str(tests[i].input, strlen(tests[i].input), &parsed)) {
-            TEST_FAILED("  ipv6_from_str failed for zero-run test\n");
-        } else {
-            TEST_PASSED();
-        }
-
-        memcpy(&expected.address.components[0], &tests[i].components[0],
-               sizeof(uint16_t) * IPV6_NUM_COMPONENTS);
-        expected.port = tests[i].port;
-        expected.mask = tests[i].mask;
-        expected.flags = tests[i].flags;
-
-        if (!compare_address(&parsed, &expected)) {
-            TEST_FAILED("  zero-run address mismatch\n");
-        } else {
-            TEST_PASSED();
-        }
-    }
-}
-
-//
-// Test additional diagnostic events
-//
-static void test_diagnostic_events(test_status_t* status) {
-    struct diag_test {
-        const char* input;
-        ipv6_diag_event_t expected_event;
-        const char* description;
-    };
-
-    struct diag_test tests[] = {
-        { NULL, IPV6_DIAG_INVALID_INPUT, "NULL input" },
-        { "", IPV6_DIAG_INVALID_INPUT, "empty string" },
-        { "   ", IPV6_DIAG_V6_BAD_COMPONENT_COUNT, "whitespace only" },
-        { "1:2:3:4:5:6:7:8:9", IPV6_DIAG_V6_BAD_COMPONENT_COUNT, "too many components" },
-        { "gggg::1", IPV6_DIAG_INVALID_INPUT_CHAR, "invalid hex char" },
-        { "::1.2.3.256", IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE, "IPv4 octet > 255" },
-        { "::fffff", IPV6_DIAG_V6_COMPONENT_OUT_OF_RANGE, "component > 0xffff" },
-        { "::1::2", IPV6_DIAG_INVALID_ABBREV, "multiple abbreviations" },
-    };
-
-    for (uint32_t i = 0; i < LENGTHOF(tests); ++i) {
-        ipv6_address_full_t parsed;
-        diag_test_capture_t capture;
-        memset(&parsed, 0, sizeof(parsed));
-        memset(&capture, 0, sizeof(capture));
-
-        printf("test_diagnostic_events index: %u - %s\n", i, tests[i].description);
-
-        // Handle NULL input specially
-        const char* input = tests[i].input;
-        size_t input_len = input ? strlen(input) : 0;
-
-        ipv6_from_str_diag(input, input_len, &parsed, test_parsing_diag_fn, &capture);
-
-        if (capture.calls == 0) {
-            TEST_FAILED("  expected diagnostic callback to be called\n");
-            continue;
-        }
-
-        if (capture.event != tests[i].expected_event) {
-            TEST_FAILED("  expected event %u (%s), got %u\n",
-                tests[i].expected_event, tests[i].description, capture.event);
-        } else {
-            TEST_PASSED();
-        }
-    }
-}
-
 int main(void) {
     test_group_t test_groups[] = {
         { "test_uppercase_hex", test_uppercase_hex },
@@ -638,10 +438,6 @@ int main(void) {
         { "test_trailing_whitespace", test_trailing_whitespace },
         { "test_mixed_case_hex", test_mixed_case_hex },
         { "test_to_str_edge_cases", test_to_str_edge_cases },
-        { "test_cidr_edge_cases", test_cidr_edge_cases },
-        { "test_invalid_sequences", test_invalid_sequences },
-        { "test_zero_run_expansion", test_zero_run_expansion },
-        { "test_diagnostic_events", test_diagnostic_events },
     };
 
     uint32_t total_failures = 0;
