@@ -23,6 +23,14 @@ License: MIT
   - IPv4 addresses with less than 4 octets (1 -> 0.0.0.1, 1.2 -> 1.0.0.2, 1.2.3 -> 1.2.0.3)
   - Basic IPv4 with port 10.1:8080 -> 10.0.0.1:8080
   - Combinations of the above `[ffff::1.2.3.4/128]:1119`
+- **RFC 4007 Scoped IPv6 Address Support (Zone IDs)**
+  - Link-local addresses with zone IDs `fe80::1%eth0`
+  - Numeric zone IDs `fe80::1%1`
+  - Zone IDs with CIDR notation `fe80::1/64%eth0`
+  - Zone IDs with port notation `[fe80::1%eth0]:8080`
+  - Non-link-local addresses with zone IDs `2001:db8::1%eth0`
+  - Interface name validation (max 15 characters per IFNAMSIZ)
+  - Full round-trip support (parse → string → parse preserves zone ID)
 - Single function to parse both IPv4 and IPv6 addresses and ports
 - Rich diagnostic information regarding addresses formatting
 - Two way functionality address -> parse -> string -> parse
@@ -30,6 +38,71 @@ License: MIT
 - Comprehensive tests
 
 
+
+## RFC 4007 Scoped IPv6 Addresses
+
+This library implements [RFC 4007](https://www.rfc-editor.org/rfc/rfc4007.html) for IPv6 scoped addresses with zone identifiers (zone IDs). Zone IDs are used to identify the zone (typically a network interface) for addresses with non-global scope, such as link-local addresses.
+
+### Format
+
+Zone IDs use the `%` delimiter followed by an implementation-dependent zone identifier:
+
+```
+<address>%<zone_id>
+```
+
+### Examples
+
+```c
+ipv6_address_full_t addr;
+
+// Link-local address with interface name
+ipv6_from_str("fe80::1%eth0", 15, &addr);
+
+// Numeric zone ID
+ipv6_from_str("fe80::1%1", 10, &addr);
+
+// Zone ID with CIDR notation
+ipv6_from_str("fe80::1/64%eth0", 18, &addr);
+
+// Zone ID with port notation (brackets required)
+ipv6_from_str("[fe80::1%eth0]:8080", 22, &addr);
+
+// Access zone ID from parsed address
+printf("Interface: %.*s\n", addr.iface_len, addr.iface);
+
+// Round-trip conversion preserves zone ID
+char output[IPV6_STRING_SIZE];
+ipv6_to_str(&addr, output, sizeof(output));
+// Result: "fe80::1%eth0"
+```
+
+### Conformance
+
+- **MUST** use `%` as delimiter (Section 11.2)
+- **MUST** validate interface name length < 16 characters (IFNAMSIZ)
+- **MAY** be used with any scoped address, not just link-local (Section 6)
+- Zone IDs are **implementation-dependent** (numeric or textual)
+- Full compatibility with bracket notation for ports (Section 11.7)
+- Supports combination with CIDR masks
+
+### Structure Fields
+
+The `ipv6_address_full_t` structure includes zone ID support:
+
+```c
+typedef struct {
+    ipv6_address_t          address;        // address components
+    uint16_t                port;           // port binding
+    uint16_t                pad0;           // first padding
+    uint32_t                mask;           // CIDR mask bits
+    const char*             iface;          // pointer to zone ID in input string
+    uint32_t                iface_len;      // length of zone ID string
+    uint32_t                flags;          // feature flags
+} ipv6_address_full_t;
+```
+
+**Note:** The `iface` pointer references the original input string. Ensure the input string remains valid while accessing the zone ID.
 
 ## IPv4 Compatibility Mode
 
