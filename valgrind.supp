@@ -1,24 +1,35 @@
 # Valgrind suppression file for ipv6-parse
-# This file contains suppressions for known false positives
-
-# Suppress potential false positives from system libraries
-{
-   libc_conditional_jump
-   Memcheck:Cond
-   obj:*/libc-*.so
-}
-
-{
-   libc_value
-   Memcheck:Value8
-   obj:*/libc-*.so
-}
-
-# Suppress uninitialized value warnings in standard library
-{
-   std_string_uninitialized
-   Memcheck:Value8
-   fun:*std*string*
-}
-
-# Add project-specific suppressions below if needed
+#
+# Status: No suppressions currently needed (as of 2025-11-08)
+#
+# The ipv6-parse library is clean with no memory leaks or uninitialized
+# value warnings. Valgrind runs show:
+#   - ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+#   - All heap blocks were freed -- no leaks are possible
+#
+# Previously, this file contained broad suppressions for:
+#   1. libc conditional jumps
+#   2. libc uninitialized values
+#   3. C++ std::string (despite this being a C library with no C++ usage)
+#
+# These suppressions were:
+#   - Never actually triggered (suppressed count always 0)
+#   - Too broad and could hide real bugs
+#   - Unnecessary given the clean Valgrind results
+#
+# If future Valgrind warnings appear:
+#   1. First investigate if they are real bugs in ipv6-parse
+#   2. Only add suppressions for confirmed false positives
+#   3. Make suppressions as specific as possible (include function names)
+#   4. Document the reason with a reference to the specific issue
+#   5. Link to bug report or discussion explaining the false positive
+#
+# Example of a properly documented suppression:
+# {
+#    brief_description_of_false_positive
+#    Memcheck:Leak
+#    fun:specific_function_name
+#    fun:call_stack_frame
+#    # Reason: Brief explanation of why this is a false positive
+#    # Reference: Link to bug report or discussion
+# }
