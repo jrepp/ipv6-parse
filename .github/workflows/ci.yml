@@ -92,9 +92,9 @@ jobs:
       - name: Build Project
         run: |
           cd build
-          cmake --build . -j
+          cmake --build . -j --config Release
 
       - name: Run Tests
         run: |
           cd build
-          ctest --output-on-failure -j
+          ctest --output-on-failure -j -C Release
