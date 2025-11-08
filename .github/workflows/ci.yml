@@ -42,7 +42,7 @@ jobs:
         run: |
           cd build
           ./bin/ipv6-test
-          ./bin/ipv6-fuzz
+          ./bin/ipv6-fuzz 10
 
       - name: Generate Coverage Report
         run: |
@@ -62,7 +62,7 @@ jobs:
         run: |
           cd build
           valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --error-exitcode=1 --suppressions=../valgrind.supp ./bin/ipv6-test
-          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --error-exitcode=1 --suppressions=../valgrind.supp ./bin/ipv6-fuzz
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --error-exitcode=1 --suppressions=../valgrind.supp ./bin/ipv6-fuzz 10
 
   cpp_build:
     runs-on: ${{ matrix.os }}

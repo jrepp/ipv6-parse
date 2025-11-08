@@ -129,7 +129,7 @@ if (NOT IPV6_PARSE_LIBRARY_ONLY)
     endif ()
     enable_testing()
     add_test(NAME verification COMMAND ipv6-test)
-    add_test(NAME fuzz COMMAND ipv6-fuzz)
+    add_test(NAME fuzz COMMAND ipv6-fuzz 10)
     add_test(NAME extended COMMAND ipv6-test-extended)
 endif ()
 
