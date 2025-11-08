@@ -33,7 +33,8 @@
 #define NUM_ITERATIONS 1000
 
 char* generate_random_string(int length) {
-    const char* chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.";
+    // Include all relevant characters for IPv6/IPv4 parsing including edge case chars
+    const char* chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.[]/%_-@#! \t\n";
     char* str = (char*)malloc((length + 1) * sizeof(char));
     for (int i = 0; i < length; i++) {
         int index = rand() % (int)strlen(chars);
@@ -149,14 +150,153 @@ void fuzz_ipv6_compare(int num_iterations) {
     printf("\n");
 }
 
-int main(int argc, const char **argv) {
-    (void)argc; (void)argv;
+void fuzz_edge_cases(void) {
+    printf("Testing edge cases:\n");
 
+    // Edge case test inputs
+    const char* edge_cases[] = {
+        // Boundary values
+        "0:0:0:0:0:0:0:0",
+        "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+
+        // Zone ID edge cases
+        "fe80::1%",                      // Empty zone ID
+        "fe80::1%123456789012345",       // Long zone ID (15 chars - max)
+        "fe80::1%1234567890123456",      // Too long zone ID (16 chars)
+        "fe80::1%eth-0",                 // Zone ID with hyphen
+        "fe80::1%eth_0",                 // Zone ID with underscore
+        "fe80::1%0",                     // Numeric zone ID
+        "[fe80::1%eth0]:8080",           // Zone ID with port
+        "fe80::1/64%eth0",               // Zone ID with CIDR
+        "[fe80::1/64%eth0]:8080",        // Zone ID with CIDR and port
+
+        // CIDR edge cases
+        "::/0",                          // Minimum CIDR
+        "::1/128",                       // Maximum CIDR
+        "::1/129",                       // Invalid CIDR (too large)
+        "::1/999",                       // Invalid CIDR (way too large)
+        "::1/-1",                        // Negative CIDR
+
+        // Port edge cases
+        "[::1]:0",                       // Port 0
+        "[::1]:65535",                   // Maximum port
+        "[::1]:65536",                   // Port too large
+        "[::1]:99999",                   // Port way too large
+        "[::1]:-1",                      // Negative port
+
+        // Bracket edge cases
+        "[::1",                          // Missing closing bracket
+        "::1]",                          // Missing opening bracket
+        "[[::1]]",                       // Double brackets
+        "[::1]:8080",                    // Correct brackets with port
+        "::1:8080",                      // No brackets (invalid for port)
+
+        // Compression edge cases
+        ":::",                           // Triple colon
+        "1::2::3",                       // Multiple compressions
+        "::1::2",                        // Multiple compressions
+        "1:2:3:4:5:6:7:8:9",            // Too many components
+
+        // IPv4-embedded edge cases
+        "::ffff:256.0.0.1",             // IPv4 octet too large
+        "::ffff:1.2.3",                 // IPv4 too few octets
+        "::ffff:1.2.3.4.5",             // IPv4 too many octets
+        "::192.168.1.1",                // IPv4 embed without ffff prefix
+        "1:2:3:4:5:6:192.168.1.1",      // IPv4 embed at correct position
+        "192.168.1.1:8080",             // IPv4 with port (no brackets)
+
+        // Malformed inputs
+        "",                              // Empty string
+        ":",                             // Single colon
+        "::",                            // Double colon only
+        "g::1",                          // Invalid hex character
+        "12345::1",                      // Component too long
+        "  ::1  ",                       // Leading/trailing spaces
+        "::1\n",                         // Newline in input
+        "::1\t",                         // Tab in input
+
+        // Very long inputs
+        "1111:2222:3333:4444:5555:6666:7777:8888:9999:aaaa:bbbb:cccc",
+
+        // Mixed notation stress tests
+        "[::ffff:192.168.1.1/96]:8080", // IPv4-embed + CIDR + port
+        "[2001:db8::1%eth0/64]:443",    // Full combo: address + zone + CIDR + port
+
+        // Special characters
+        "::1#comment",                   // Hash character
+        "::1@host",                      // At symbol
+        "::1!invalid",                   // Exclamation mark
+
+        // Case sensitivity (should be case-insensitive)
+        "FFFF::1",                       // Uppercase
+        "FfFf::aAbB",                    // Mixed case
+
+        // Leading zeros
+        "0001:0002:0003::1",            // Leading zeros in components
+
+        NULL
+    };
+
+    int test_num = 0;
+    int passed = 0;
+    int failed = 0;
+
+    for (int i = 0; edge_cases[i] != NULL; i++) {
+        test_num++;
+        printf("Test %d: '%s'\n", test_num, edge_cases[i]);
+
+        ipv6_address_full_t addr;
+        memset(&addr, 0, sizeof(ipv6_address_full_t));
+
+        bool result = ipv6_from_str(edge_cases[i], strlen(edge_cases[i]), &addr);
+
+        printf("  Result: %s\n", result ? "VALID" : "INVALID");
+
+        if (result) {
+            // Try to convert back to string
+            char output[IPV6_STRING_SIZE];
+            size_t len = ipv6_to_str(&addr, output, sizeof(output));
+            if (len > 0) {
+                printf("  Round-trip: %s\n", output);
+                passed++;
+            } else {
+                printf("  Round-trip failed\n");
+                failed++;
+            }
+        } else {
+            // Invalid input - this is expected for many edge cases
+            passed++;
+        }
+
+        printf("---\n");
+    }
+
+    printf("Edge case testing complete: %d tests, %d passed, %d failed\n\n",
+           test_num, passed, failed);
+}
+
+int main(int argc, const char **argv) {
+    int num_iterations = NUM_ITERATIONS;
+
+    // Allow overriding iterations via command line argument
+    if (argc > 1) {
+        num_iterations = atoi(argv[1]);
+        if (num_iterations <= 0) {
+            printf("Invalid iteration count: %s. Using default: %d\n", argv[1], NUM_ITERATIONS);
+            num_iterations = NUM_ITERATIONS;
+        }
+    }
+
+    printf("Running fuzz tests with %d iterations...\n", num_iterations);
     srand((unsigned int)time(NULL));
 
-    fuzz_ipv6_from_str(NUM_ITERATIONS);
-    fuzz_ipv6_to_str(NUM_ITERATIONS);
-    fuzz_ipv6_compare(NUM_ITERATIONS);
+    // Run targeted edge case tests first
+    fuzz_edge_cases();
+
+    // Then run random fuzz tests
+    fuzz_ipv6_from_str(num_iterations);
+    fuzz_ipv6_to_str(num_iterations);
+    fuzz_ipv6_compare(num_iterations);
 
     return 0;
 }
