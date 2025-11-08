@@ -132,10 +132,14 @@ static void test_zone_ids(test_status_t* status) {
     };
 
     struct zone_test tests[] = {
-        // Basic zone IDs
+        // Basic zone IDs (RFC 4007 Section 11.2)
         { "fe80::1%eth0", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
         { "::1%lo", { 0, 0, 0, 0, 0, 0, 0, 1 }, "lo", 2, true },
         { "fe80::abcd%wlan0", { 0xfe80, 0, 0, 0, 0, 0, 0, 0xabcd }, "wlan0", 5, true },
+
+        // Numeric zone IDs (RFC 4007 - implementation dependent)
+        { "fe80::1%1", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "1", 1, true },
+        { "fe80::1%25", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "25", 2, true },
 
         // Interface names with numbers and special chars
         { "fe80::1%eth0.100", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0.100", 8, true },
@@ -143,20 +147,24 @@ static void test_zone_ids(test_status_t* status) {
         { "fe80::1%br-lan", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "br-lan", 6, true },
         { "fe80::1%tun_vpn", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "tun_vpn", 7, true },
 
-        // Zone ID with CIDR mask
+        // Zone ID with CIDR mask (RFC 4007 allows combination)
         { "fe80::1/64%eth0", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
 
-        // Zone ID with brackets (for port notation)
+        // Zone ID with brackets (for port notation - RFC 4007 Section 11.7)
         { "[fe80::1%eth0]:8080", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
 
-        // Long interface name (15 chars - max allowed)
+        // Zone IDs with non-link-local addresses (RFC 4007 says MAY be used)
+        { "2001:db8::1%eth0", { 0x2001, 0xdb8, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
+        { "ff02::1%eth0", { 0xff02, 0, 0, 0, 0, 0, 0, 1 }, "eth0", 4, true },
+
+        // Long interface name (15 chars - max allowed per IFNAMSIZ)
         { "fe80::1%verylongifname", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "verylongifname", 14, true },
         { "fe80::1%verylongifnam15", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "verylongifnam15", 15, true },
 
         // Too long interface name (16+ chars - should fail per IFNAMSIZ)
         { "fe80::1%verylongifname16", { 0, 0, 0, 0, 0, 0, 0, 0 }, NULL, 0, false },
 
-        // Empty interface name
+        // Empty interface name (invalid per RFC 4007)
         { "fe80::1%", { 0xfe80, 0, 0, 0, 0, 0, 0, 1 }, "", 0, false },
     };
 
