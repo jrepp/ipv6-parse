@@ -79,7 +79,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 file(GLOB ipv6_sources "ipv6.h" "ipv6.c" ${IPV6_CONFIG_HEADER_PATH}/ipv6_config.h)
 
 if (MSVC)
-    set(ipv6_target_compile_flags "/MTd /Wall /WX /ZI /Od /D_NO_CRT_STDIO_INLINE=1")
+    set(ipv6_target_compile_flags "/MTd /Wall /WX /wd5045 /ZI /Od /D_NO_CRT_STDIO_INLINE=1")
 else ()
     set(ipv6_target_compile_flags "-Wall -Werror -Wno-long-long -pedantic -std=c99 -Wno-unused-but-set-variable")
     if (ENABLE_COVERAGE)
