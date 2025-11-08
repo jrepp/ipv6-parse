@@ -29,8 +29,15 @@
 #endif
 
 
-// Original core address RFC 3513: https://tools.ietf.org/html/rfc3513
-// Replacement address RFC 4291: https://tools.ietf.org/html/rfc4291
+// RFC Conformance:
+// - RFC 4291: IPv6 Addressing Architecture
+//   https://www.rfc-editor.org/rfc/rfc4291.html
+// - RFC 5952: A Recommendation for IPv6 Address Text Representation
+//   https://www.rfc-editor.org/rfc/rfc5952.html
+// - RFC 4007: IPv6 Scoped Address Architecture (Zone IDs)
+//   https://www.rfc-editor.org/rfc/rfc4007.html
+//
+// Note: RFC 3513 (obsolete) was replaced by RFC 4291
 
 //
 // Distinct states of parsing an address
