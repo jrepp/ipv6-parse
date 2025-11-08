@@ -10,6 +10,29 @@ License: MIT
 
 [![Build Status](https://travis-ci.org/jrepp/ipv6-parse.svg?branch=master)](https://travis-ci.org/jrepp/ipv6-parse)
 
+## RFC Conformance
+
+This library implements the following IETF RFCs for IPv6/IPv4 address handling:
+
+- **[RFC 4291](https://www.rfc-editor.org/rfc/rfc4291.html)** - IPv6 Addressing Architecture
+  - Basic IPv6 address format and syntax
+  - Zero compression with `::`
+  - IPv4-embedded IPv6 addresses (e.g., `::ffff:192.0.2.1`)
+  - CIDR prefix notation (e.g., `2001:db8::/32`)
+  - Unicast, anycast, and multicast address formats
+
+- **[RFC 5952](https://www.rfc-editor.org/rfc/rfc5952.html)** - A Recommendation for IPv6 Address Text Representation
+  - Lowercase hexadecimal representation
+  - Leading zero suppression in each 16-bit field
+  - `::` to represent the longest run of consecutive zero fields
+  - Single `::` abbreviation per address
+  - Bracket notation for addresses with port numbers (e.g., `[::1]:8080`)
+
+- **[RFC 4007](https://www.rfc-editor.org/rfc/rfc4007.html)** - IPv6 Scoped Address Architecture
+  - Zone identifier (zone ID) support with `%` delimiter
+  - Link-local and other scoped addresses with interface names
+  - Numeric and textual zone identifiers
+  - Zone IDs with CIDR masks and port notation
 
 ## Features
 
