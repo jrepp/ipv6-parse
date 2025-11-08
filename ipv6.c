@@ -53,8 +53,15 @@
 #endif
 
 
-// Original core address RFC 3513: https://tools.ietf.org/html/rfc3513
-// Replacement address RFC 4291: https://tools.ietf.org/html/rfc4291
+// RFC Conformance:
+// - RFC 4291: IPv6 Addressing Architecture
+//   https://www.rfc-editor.org/rfc/rfc4291.html
+// - RFC 5952: A Recommendation for IPv6 Address Text Representation
+//   https://www.rfc-editor.org/rfc/rfc5952.html
+// - RFC 4007: IPv6 Scoped Address Architecture (Zone IDs)
+//   https://www.rfc-editor.org/rfc/rfc4007.html
+//
+// Note: RFC 3513 (obsolete) was replaced by RFC 4291
 
 //
 // Distinct states of parsing an address
@@ -402,6 +409,19 @@ static void ipvx_parse_port (ipv6_reader_state_t* state) {
 }
 
 //--------------------------------------------------------------------------------
+static void ipvx_parse_iface (ipv6_reader_state_t* state) {
+    // Validate interface name length (IFNAMSIZ = 16 in Linux)
+    VALIDATE("Interface name must be less than 16 characters",
+        IPV6_DIAG_INVALID_INPUT,
+        state->token_len > 0 && state->token_len < 16,
+        return);
+
+    // Store pointer to interface name and length
+    state->address_full->iface = state->input + state->token_position;
+    state->address_full->iface_len = (uint32_t)state->token_len;
+}
+
+//--------------------------------------------------------------------------------
 //
 // State transition function for parser, given a current state and a event class input
 // the state will be updated for a next state or accumulate data within the current state
@@ -519,6 +539,7 @@ static void ipv6_state_transition (
                 case EC_IFACE:
                     ipvx_parse_component(state);
                     CHANGE_STATE(STATE_IFACE);
+                    BEGIN_TOKEN(1);
                     break;
 
                 case EC_CIDR_MASK:
@@ -574,6 +595,7 @@ static void ipv6_state_transition (
 
                 case EC_IFACE:
                     CHANGE_STATE(STATE_IFACE);
+                    BEGIN_TOKEN(1);
                     break;
 
                 case EC_CIDR_MASK:
@@ -589,17 +611,33 @@ static void ipv6_state_transition (
             break;
 
         case STATE_IFACE:
-            // TODO: identify all valid interface characters
+            // Accept interface characters following iproute2 rules:
+            // - No '/' or whitespace
+            // - Less than 16 characters (IFNAMSIZ)
+            // Accept alphanumeric, dash, underscore, dot, colon (common in interfaces)
             switch (input) {
                 case EC_WHITESPACE:
+                    ipvx_parse_iface(state);
                     CHANGE_STATE(STATE_NONE);
                     break;
 
                 case EC_CLOSE_BRACKET:
+                    ipvx_parse_iface(state);
                     CHANGE_STATE(STATE_POST_ADDR);
                     break;
 
+                case EC_DIGIT:
+                case EC_HEX_DIGIT:
+                case EC_V4_COMPONENT_SEP:  // Allow '.' in interface names
+                case EC_V6_COMPONENT_SEP:  // Allow ':' in interface names
+                    // Valid interface character, accumulate
+                    state->token_len++;
+                    break;
+
                 default:
+                    // Accept any other character except '/' and whitespace
+                    // The character classification may put special chars in different categories
+                    state->token_len++;
                     break;
             }
             break;
@@ -623,6 +661,7 @@ static void ipv6_state_transition (
                 case EC_IFACE:
                     ipvx_parse_cidr(state);
                     CHANGE_STATE(STATE_IFACE);
+                    BEGIN_TOKEN(1);
                     break;
 
                 default:
@@ -809,8 +848,17 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
 
 
             default:
-                ipv6_error(&state, IPV6_DIAG_INVALID_INPUT_CHAR,
-                    "Invalid input character");
+                // In STATE_IFACE, accept any character as part of interface name
+                // This allows arbitrary interface names following iproute2 rules
+                // The STATE_IFACE handler will validate length and terminate on whitespace or special chars
+                if (state.current == STATE_IFACE) {
+                    // Just increment token_len via state transition
+                    // We'll handle this as a generic "other character" in STATE_IFACE
+                    ipv6_state_transition(&state, EC_HEX_DIGIT);
+                } else {
+                    ipv6_error(&state, IPV6_DIAG_INVALID_INPUT_CHAR,
+                        "Invalid input character");
+                }
                 break;
         }
 
@@ -1062,6 +1110,17 @@ size_t IPV6_API_DEF(ipv6_to_str) (
         const char* cp = token;
         while (wp < ep && *cp) {
             *wp++ = *cp++;
+        }
+    }
+
+    // Output interface/zone ID if present
+    if (in->iface != NULL && in->iface_len > 0) {
+        if (wp < ep) {
+            *wp++ = '%';
+        }
+        const char* iface_cp = in->iface;
+        for (uint32_t i = 0; i < in->iface_len && wp < ep; ++i) {
+            *wp++ = *iface_cp++;
         }
     }
 

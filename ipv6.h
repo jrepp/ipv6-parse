@@ -34,6 +34,13 @@
 //
 // [![Build Status](https://travis-ci.org/jrepp/ipv6-parse.svg?branch=master)](https://travis-ci.org/jrepp/ipv6-parse)
 //
+// ## RFC Conformance
+//
+// This library implements the following IETF RFCs:
+// - RFC 4291: IPv6 Addressing Architecture
+// - RFC 5952: IPv6 Address Text Representation
+// - RFC 4007: IPv6 Scoped Address Architecture (Zone IDs)
+//
 // ## Features
 //
 // - Single header, multi-platform
