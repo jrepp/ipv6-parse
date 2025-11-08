@@ -1,301 +1,43 @@
 
 # IPv6 / IPv4 address parser in C
 
-A self-contained embeddable address parsing library with full RFC compliance.
+    A self-contained embeddable address parsing library.
 
-**Author**: jacobrepp@gmail.com | **License**: MIT
+![IPv6 Parse Diagram](ipv6-parse.png)
 
-[![CI Build Tests](https://github.com/jrepp/ipv6-parse/actions/workflows/ci.yml/badge.svg)](https://github.com/jrepp/ipv6-parse/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jrepp/ipv6-parse/branch/master/graph/badge.svg)](https://codecov.io/gh/jrepp/ipv6-parse)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Author: jacobrepp@gmail.com
+License: MIT
+
+[![Build Status](https://travis-ci.org/jrepp/ipv6-parse.svg?branch=master)](https://travis-ci.org/jrepp/ipv6-parse)
+
 
 ## Features
 
-### Distribution Methods
+- Single header, multi-platform
+- Full support for the IPv6 & IPv4 addresses, including CIDR
+  - Abbreviations `::1`, `ff::1:2`
+  - Embedded IPv4 `ffff::10.11.82.1`
+  - CIDR notation `ffff::/80`
+  - Port notation `[::1]:1119`
+  - IPv4 `10.11.82.1`, `10.11.82.1:5555`, `10.0.0.0/8`
+  - IPv4 addresses with less than 4 octets (1 -> 0.0.0.1, 1.2 -> 1.0.0.2, 1.2.3 -> 1.2.0.3)
+  - Basic IPv4 with port 10.1:8080 -> 10.0.0.1:8080
+  - Combinations of the above `[ffff::1.2.3.4/128]:1119`
+- **RFC 4007 Scoped IPv6 Address Support (Zone IDs)**
+  - Link-local addresses with zone IDs `fe80::1%eth0`
+  - Numeric zone IDs `fe80::1%1`
+  - Zone IDs with CIDR notation `fe80::1/64%eth0`
+  - Zone IDs with port notation `[fe80::1%eth0]:8080`
+  - Non-link-local addresses with zone IDs `2001:db8::1%eth0`
+  - Interface name validation (max 15 characters per IFNAMSIZ)
+  - Full round-trip support (parse → string → parse preserves zone ID)
+- Single function to parse both IPv4 and IPv6 addresses and ports
+- Rich diagnostic information regarding addresses formatting
+- Two way functionality address -> parse -> string -> parse
+- Careful use of strings and pointers
+- Comprehensive tests
 
-Install however works best for your project:
 
-- **[NPM Package](README_NPM.md)** - Node.js applications (async + sync APIs)
-- **[WebAssembly](README_WASM.md)** - Browser applications ([live demo](https://jrepp.github.io/ipv6-parse/))
-- **Linux Packages** - Debian/Ubuntu (.deb), Fedora/RHEL/CentOS (.rpm)
-- **[Homebrew](README_PACKAGE_MANAGERS.md#homebrew)** - macOS and Linux
-- **[Conan](README_PACKAGE_MANAGERS.md#conan)** - Cross-platform C/C++ projects
-- **[vcpkg](README_PACKAGE_MANAGERS.md#vcpkg)** - Visual Studio and CMake projects
-- **CMake Integration** - pkg-config support, find_package()
-- **Source Code** - Single-header embedding in C/C++ projects
-
-### Core Capabilities
-
-**Full IPv6/IPv4 Support:**
-- Zero compression: `::1`, `2001:db8::1`
-- IPv4-embedded: `::ffff:192.0.2.1`
-- CIDR notation: `2001:db8::/32`, `10.0.0.0/8`
-- Port notation: `[::1]:8080`, `192.0.2.1:443`
-- Zone IDs (RFC 4007): `fe80::1%eth0`
-- IPv4 addresses: `192.0.2.1:8080`
-- Shortened IPv4: `10.1` → `10.0.0.1`
-- Complex combinations: `[2001:db8::1/64%eth0]:443`
-
-**Quality & Reliability:**
-- **RFC Compliant** - RFC 4291, RFC 5952, RFC 4007
-- **Memory Safe** - No dynamic allocation, bounds checking
-- **Round-trip Conversion** - Parse → Structure → String → Parse
-- **Rich Diagnostics** - Detailed error reporting with position information
-- **Comprehensive Tests** - 100+ test cases with fuzz testing
-- **CI/CD Pipeline** - Multi-compiler testing (GCC, Clang, MSVC, AppleClang)
-- **Cross-platform** - Linux, macOS, Windows
-
-### Performance
-
-Validated by comprehensive benchmarks on real hardware:
-
-**Native C (Apple Silicon M-series):**
-- Parsing: 3.6M operations/sec (0.28 μs/parse)
-- Formatting: 3.3M operations/sec (0.30 μs/format)
-- Comparison: 8.3M operations/sec (0.12 μs/compare)
-- Overall: 4.3M operations/sec across all functions
-
-**NPM/WASM (Browser/Node.js):**
-- 1.75M+ parses/second, 570ns latency
-- See [README_WASM.md](README_WASM.md#performance) for detailed benchmarks
-
-Run your own benchmarks: `./build/bin/ipv6-fuzz 100000`
-
----
-
-**Quick Links:** [RFC Conformance](#rfc-conformance) • [Quick Start](#quick-start) • [Installation](#installation) • [Overview](#overview) • [API Reference](#ipv6_from_str) • [Building](#building--debugging)
-
----
-
-## RFC Conformance
-
-This library implements the following IETF RFCs:
-
-| RFC | Title | Implementation |
-|-----|-------|----------------|
-| [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291.html) | **IPv6 Addressing Architecture** | ✅ Basic format, zero compression, IPv4 embedding, CIDR notation |
-| [RFC 5952](https://www.rfc-editor.org/rfc/rfc5952.html) | **IPv6 Text Representation** | ✅ Lowercase hex, leading zero suppression, longest zero run compression |
-| [RFC 4007](https://www.rfc-editor.org/rfc/rfc4007.html) | **IPv6 Scoped Address Architecture** | ✅ Zone identifiers with `%` delimiter, numeric and textual zone IDs |
-
-### Quality Assurance
-
-- ✅ **CI/CD Pipeline** - Multi-compiler testing (GCC 12-14, Clang 15-18, MSVC, AppleClang)
-- ✅ **Code Coverage** - Tracked with lcov and Codecov
-- ✅ **Memory Safety** - Valgrind testing for memory leaks
-- ✅ **Warnings as Errors** - Strict compilation standards
-- ✅ **Cross-platform** - Linux, macOS, Windows
-
-## Quick Start
-
-### C
-
-```c
-#include "ipv6.h"
-
-const char *input = "[2001:db8::1/64]:8080";
-ipv6_address_full_t addr = {0};
-
-if (ipv6_from_str(input, strlen(input), &addr)) {
-    printf("Port: %u, CIDR: %u\n", addr.port, addr.mask);
-
-    char output[IPV6_STRING_SIZE];
-    ipv6_to_str(&addr, output, sizeof(output));
-    printf("Formatted: %s\n", output);
-}
-```
-
-### JavaScript
-
-```javascript
-import { parse, isValid } from 'ipv6-parse';
-
-// Parse and destructure
-const { formatted, port, mask } = await parse('[2001:db8::1/64]:8080');
-console.log({ formatted, port, mask });  // { formatted: "2001:db8::1", port: 8080, mask: 64 }
-
-// Validate and handle errors
-const input = userInput.trim();
-if (await isValid(input)) {
-    const addr = await parse(input);
-    // Use addr.formatted, addr.components, etc.
-}
-```
-
-**High-performance sync API:** See [README_NPM.md](README_NPM.md) for 1.75M+ ops/sec synchronous parsing.
-
-**Browser usage:** See [README_WASM.md](README_WASM.md) for WebAssembly integration.
-
-## Installation
-
-### NPM (Node.js)
-
-```bash
-npm install ipv6-parse
-```
-
-```javascript
-const ipv6 = require('ipv6-parse');
-
-const addr = await ipv6.parse('2001:db8::1');
-console.log(addr.formatted);  // "2001:db8::1"
-```
-
-See [README_NPM.md](README_NPM.md) for complete NPM documentation.
-
-### WebAssembly (Browser)
-
-Download the [latest WASM release](https://github.com/jrepp/ipv6-parse/releases) or try the [interactive demo](https://jrepp.github.io/ipv6-parse/).
-
-```html
-<script src="ipv6-parse.js"></script>
-<script src="ipv6-parse-api.js"></script>
-<script>
-createIPv6Module().then(module => {
-    const parser = new IPv6Parser(module);
-    const addr = parser.parse('2001:db8::1');
-    console.log(addr.formatted);
-});
-</script>
-```
-
-See [README_WASM.md](README_WASM.md) for complete WASM documentation.
-
-### Linux Packages
-
-**Debian/Ubuntu:**
-```bash
-# Download from releases page
-wget https://github.com/jrepp/ipv6-parse/releases/latest/download/ipv6-parse-*-Linux.deb
-sudo dpkg -i ipv6-parse-*-Linux.deb
-```
-
-**Fedora/RHEL/CentOS:**
-```bash
-# Download from releases page
-wget https://github.com/jrepp/ipv6-parse/releases/latest/download/ipv6-parse-*-Linux.rpm
-sudo rpm -i ipv6-parse-*-Linux.rpm
-```
-
-### Homebrew (macOS/Linux)
-
-```bash
-# Install from HEAD (latest master)
-brew install --HEAD https://raw.githubusercontent.com/jrepp/ipv6-parse/master/Formula/ipv6-parse.rb
-```
-
-Optional: Build with WASM support:
-```bash
-brew install ipv6-parse --with-emscripten
-```
-
-### Conan (Cross-platform C/C++)
-
-```bash
-# Add to your conanfile.txt
-[requires]
-ipv6-parse/1.2.1
-
-# Or install directly
-conan create . ipv6-parse/1.2.1@
-```
-
-### vcpkg (Cross-platform C/C++)
-
-```bash
-# After copying port to vcpkg/ports/ipv6-parse
-vcpkg install ipv6-parse
-```
-
-See [README_PACKAGE_MANAGERS.md](README_PACKAGE_MANAGERS.md) for complete package manager documentation.
-
-### Building from Source
-
-**Static library (default):**
-```bash
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-```
-
-**Shared library:**
-```bash
-mkdir build && cd build
-cmake -DBUILD_SHARED_LIBS=ON ..
-make
-sudo make install
-```
-
-**WebAssembly:**
-```bash
-# Requires Emscripten SDK
-./build_wasm.sh
-```
-
-After installation, the library can be used with:
-- **pkg-config**: `gcc $(pkg-config --cflags --libs ipv6-parse) myapp.c -o myapp`
-- **CMake**: `find_package(ipv6-parse REQUIRED)` and `target_link_libraries(myapp PRIVATE ipv6-parse::ipv6-parse)`
-
-## Overview
-
-```mermaid
-graph TB
-    subgraph "Input Formats"
-        IN1["IPv6: 2001:db8::1"]
-        IN2["IPv4: 192.0.2.1"]
-        IN3["CIDR: ::1/128"]
-        IN4["Port: [::1]:8080"]
-        IN5["Zone ID: fe80::1%eth0"]
-        IN6["IPv4-embed: ::ffff:192.0.2.1"]
-        IN7["Combined: [2001:db8::1/64%eth0]:443"]
-    end
-
-    subgraph "Parser - ipv6_from_str()"
-        PARSE["State Machine Parser<br/>RFC 4291, 5952, 4007"]
-        VALIDATE["Validation & Diagnostics<br/>• Component count<br/>• Range checks<br/>• Format validation"]
-    end
-
-    subgraph "Internal Representation"
-        STRUCT["ipv6_address_full_t<br/>━━━━━━━━━━━━━<br/>address: [8 × uint16_t]<br/>port: uint16_t<br/>mask: uint32_t<br/>iface: const char*<br/>iface_len: uint32_t<br/>flags: uint32_t"]
-    end
-
-    subgraph "Formatter - ipv6_to_str()"
-        FORMAT["RFC 5952 Formatter<br/>• Lowercase hex<br/>• Zero compression (::)<br/>• Shortest representation"]
-    end
-
-    subgraph "Output Formats"
-        OUT1["2001:db8::1"]
-        OUT2["::1/128"]
-        OUT3["[::1]:8080"]
-        OUT4["fe80::1%eth0"]
-        OUT5["Round-trip preserves:<br/>• Zone IDs<br/>• CIDR masks<br/>• Port numbers"]
-    end
-
-    IN1 --> PARSE
-    IN2 --> PARSE
-    IN3 --> PARSE
-    IN4 --> PARSE
-    IN5 --> PARSE
-    IN6 --> PARSE
-    IN7 --> PARSE
-
-    PARSE --> VALIDATE
-    VALIDATE --> STRUCT
-    STRUCT --> FORMAT
-
-    FORMAT --> OUT1
-    FORMAT --> OUT2
-    FORMAT --> OUT3
-    FORMAT --> OUT4
-    FORMAT --> OUT5
-
-    STRUCT -.->|"Round-trip<br/>ipv6_compare()"| STRUCT
-
-    style PARSE fill:#e1f5ff
-    style FORMAT fill:#e1f5ff
-    style STRUCT fill:#fff4e1
-    style VALIDATE fill:#ffe1e1
-```
 
 ## RFC 4007 Scoped IPv6 Addresses
 
