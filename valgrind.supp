@@ -1,0 +1,24 @@
+# Valgrind suppression file for ipv6-parse
+# This file contains suppressions for known false positives
+
+# Suppress potential false positives from system libraries
+{
+   libc_conditional_jump
+   Memcheck:Cond
+   obj:*/libc-*.so
+}
+
+{
+   libc_value
+   Memcheck:Value8
+   obj:*/libc-*.so
+}
+
+# Suppress uninitialized value warnings in standard library
+{
+   std_string_uninitialized
+   Memcheck:Value8
+   fun:*std*string*
+}
+
+# Add project-specific suppressions below if needed
