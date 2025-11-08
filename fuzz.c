@@ -125,7 +125,7 @@ void fuzz_ipv6_compare(int num_iterations) {
 int main(int argc, const char **argv) {
     (void)argc; (void)argv;
 
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
 
     fuzz_ipv6_from_str(NUM_ITERATIONS);
     fuzz_ipv6_to_str(NUM_ITERATIONS);

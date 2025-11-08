@@ -9,6 +9,61 @@ on:
     - cron: '30 3 * * 0'
 
 jobs:
+  coverage:
+    name: Code Coverage & Memory Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov valgrind
+
+      - name: Create Build Directory
+        run: mkdir build
+
+      - name: Configure with Coverage
+        run: |
+          cd build
+          cmake -DENABLE_COVERAGE=1 -DIPV6_PARSE_LIBRARY_ONLY=OFF ..
+
+      - name: Build
+        run: |
+          cd build
+          cmake --build . -j
+
+      - name: Run Tests
+        run: |
+          cd build
+          ctest --output-on-failure
+
+      - name: Run Extended Tests
+        run: |
+          cd build
+          ./bin/ipv6-test
+          ./bin/ipv6-fuzz
+
+      - name: Generate Coverage Report
+        run: |
+          cd build
+          lcov --capture --directory . --output-file coverage.info
+          lcov --ignore-errors unused --remove coverage.info '/usr/*' --output-file coverage.info
+          lcov --list coverage.info
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./build/coverage.info
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Run Valgrind Memory Check
+        run: |
+          cd build
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --error-exitcode=1 --suppressions=../valgrind.supp ./bin/ipv6-test
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --error-exitcode=1 --suppressions=../valgrind.supp ./bin/ipv6-fuzz
+
   cpp_build:
     runs-on: ${{ matrix.os }}
     strategy:
