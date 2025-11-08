@@ -239,6 +239,7 @@ static void test_output_diag_fn (
         const ipv6_diag_info_t* info,
         void* user_data)
 {
+    (void)user_data;
     printf("    DIAG: [%u] %s: %s from: '%s' pos %u\n",
            event, diag_event_to_str(event), info->message, info->input, info->position);
 }

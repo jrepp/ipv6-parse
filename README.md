@@ -1,66 +1,149 @@
 
 # IPv6 / IPv4 address parser in C
 
-    A self-contained embeddable address parsing library.
+A self-contained embeddable address parsing library with full RFC compliance.
 
-![IPv6 Parse Diagram](ipv6-parse.png)
+**Author**: jacobrepp@gmail.com | **License**: MIT
 
-Author: jacobrepp@gmail.com
-License: MIT
+[![CI Build Tests](https://github.com/jrepp/ipv6-parse/actions/workflows/ci.yml/badge.svg)](https://github.com/jrepp/ipv6-parse/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jrepp/ipv6-parse/branch/master/graph/badge.svg)](https://codecov.io/gh/jrepp/ipv6-parse)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Build Status](https://travis-ci.org/jrepp/ipv6-parse.svg?branch=master)](https://travis-ci.org/jrepp/ipv6-parse)
+## Overview
+
+```mermaid
+graph TB
+    subgraph "Input Formats"
+        IN1["IPv6: 2001:db8::1"]
+        IN2["IPv4: 192.0.2.1"]
+        IN3["CIDR: ::1/128"]
+        IN4["Port: [::1]:8080"]
+        IN5["Zone ID: fe80::1%eth0"]
+        IN6["IPv4-embed: ::ffff:192.0.2.1"]
+        IN7["Combined: [2001:db8::1/64%eth0]:443"]
+    end
+
+    subgraph "Parser - ipv6_from_str()"
+        PARSE["State Machine Parser<br/>RFC 4291, 5952, 4007"]
+        VALIDATE["Validation & Diagnostics<br/>• Component count<br/>• Range checks<br/>• Format validation"]
+    end
+
+    subgraph "Internal Representation"
+        STRUCT["ipv6_address_full_t<br/>━━━━━━━━━━━━━<br/>address: [8 × uint16_t]<br/>port: uint16_t<br/>mask: uint32_t<br/>iface: const char*<br/>iface_len: uint32_t<br/>flags: uint32_t"]
+    end
+
+    subgraph "Formatter - ipv6_to_str()"
+        FORMAT["RFC 5952 Formatter<br/>• Lowercase hex<br/>• Zero compression (::)<br/>• Shortest representation"]
+    end
+
+    subgraph "Output Formats"
+        OUT1["2001:db8::1"]
+        OUT2["::1/128"]
+        OUT3["[::1]:8080"]
+        OUT4["fe80::1%eth0"]
+        OUT5["Round-trip preserves:<br/>• Zone IDs<br/>• CIDR masks<br/>• Port numbers"]
+    end
+
+    IN1 --> PARSE
+    IN2 --> PARSE
+    IN3 --> PARSE
+    IN4 --> PARSE
+    IN5 --> PARSE
+    IN6 --> PARSE
+    IN7 --> PARSE
+
+    PARSE --> VALIDATE
+    VALIDATE --> STRUCT
+    STRUCT --> FORMAT
+
+    FORMAT --> OUT1
+    FORMAT --> OUT2
+    FORMAT --> OUT3
+    FORMAT --> OUT4
+    FORMAT --> OUT5
+
+    STRUCT -.->|"Round-trip<br/>ipv6_compare()"| STRUCT
+
+    style PARSE fill:#e1f5ff
+    style FORMAT fill:#e1f5ff
+    style STRUCT fill:#fff4e1
+    style VALIDATE fill:#ffe1e1
+```
+
+## Features
+
+- **Single header, multi-platform** - Easy to embed in any C/C++ project
+- **Full IPv6 & IPv4 support** with all standard notations
+  - Zero compression: `::1`, `2001:db8::1`
+  - IPv4-embedded addresses: `::ffff:192.0.2.1`
+  - CIDR notation: `2001:db8::/32`
+  - Port notation: `[::1]:8080`
+  - Zone IDs (RFC 4007): `fe80::1%eth0`
+  - IPv4 addresses: `192.0.2.1:8080`
+  - Shortened IPv4: `10.1` → `10.0.0.1`
+  - All combinations: `[2001:db8::1/64%eth0]:443`
+- **Round-trip conversion** - Parse → Structure → String → Parse
+- **RFC compliant** - Full standards compliance (see below)
+- **Rich diagnostics** - Detailed error reporting with position information
+- **Memory safe** - No dynamic allocation, bounds checking
+- **Comprehensive test suite** - 100+ test cases with fuzz testing
 
 ## RFC Conformance
 
 This library implements the following IETF RFCs for IPv6/IPv4 address handling:
 
-- **[RFC 4291](https://www.rfc-editor.org/rfc/rfc4291.html)** - IPv6 Addressing Architecture
-  - Basic IPv6 address format and syntax
-  - Zero compression with `::`
-  - IPv4-embedded IPv6 addresses (e.g., `::ffff:192.0.2.1`)
-  - CIDR prefix notation (e.g., `2001:db8::/32`)
-  - Unicast, anycast, and multicast address formats
+| RFC | Title | Implementation |
+|-----|-------|----------------|
+| [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291.html) | **IPv6 Addressing Architecture** | ✅ Basic format, zero compression, IPv4 embedding, CIDR notation |
+| [RFC 5952](https://www.rfc-editor.org/rfc/rfc5952.html) | **IPv6 Text Representation** | ✅ Lowercase hex, leading zero suppression, longest zero run compression, bracket notation |
+| [RFC 4007](https://www.rfc-editor.org/rfc/rfc4007.html) | **IPv6 Scoped Address Architecture** | ✅ Zone identifiers with `%` delimiter, numeric and textual zone IDs |
 
-- **[RFC 5952](https://www.rfc-editor.org/rfc/rfc5952.html)** - A Recommendation for IPv6 Address Text Representation
-  - Lowercase hexadecimal representation
-  - Leading zero suppression in each 16-bit field
-  - `::` to represent the longest run of consecutive zero fields
-  - Single `::` abbreviation per address
-  - Bracket notation for addresses with port numbers (e.g., `[::1]:8080`)
+### Quality Assurance
 
-- **[RFC 4007](https://www.rfc-editor.org/rfc/rfc4007.html)** - IPv6 Scoped Address Architecture
-  - Zone identifier (zone ID) support with `%` delimiter
-  - Link-local and other scoped addresses with interface names
-  - Numeric and textual zone identifiers
-  - Zone IDs with CIDR masks and port notation
+- ✅ **CI/CD Pipeline** - Multi-compiler testing (GCC 12-14, Clang 15-18, MSVC, AppleClang)
+- ✅ **Code Coverage** - Tracked with lcov and Codecov
+- ✅ **Memory Safety** - Valgrind testing for memory leaks
+- ✅ **Warnings as Errors** - Strict compilation standards
+- ✅ **Cross-platform** - Linux, macOS, Windows
 
-## Features
+## Quick Start
 
-- Single header, multi-platform
-- Full support for the IPv6 & IPv4 addresses, including CIDR
-  - Abbreviations `::1`, `ff::1:2`
-  - Embedded IPv4 `ffff::10.11.82.1`
-  - CIDR notation `ffff::/80`
-  - Port notation `[::1]:1119`
-  - IPv4 `10.11.82.1`, `10.11.82.1:5555`, `10.0.0.0/8`
-  - IPv4 addresses with less than 4 octets (1 -> 0.0.0.1, 1.2 -> 1.0.0.2, 1.2.3 -> 1.2.0.3)
-  - Basic IPv4 with port 10.1:8080 -> 10.0.0.1:8080
-  - Combinations of the above `[ffff::1.2.3.4/128]:1119`
-- **RFC 4007 Scoped IPv6 Address Support (Zone IDs)**
-  - Link-local addresses with zone IDs `fe80::1%eth0`
-  - Numeric zone IDs `fe80::1%1`
-  - Zone IDs with CIDR notation `fe80::1/64%eth0`
-  - Zone IDs with port notation `[fe80::1%eth0]:8080`
-  - Non-link-local addresses with zone IDs `2001:db8::1%eth0`
-  - Interface name validation (max 15 characters per IFNAMSIZ)
-  - Full round-trip support (parse → string → parse preserves zone ID)
-- Single function to parse both IPv4 and IPv6 addresses and ports
-- Rich diagnostic information regarding addresses formatting
-- Two way functionality address -> parse -> string -> parse
-- Careful use of strings and pointers
-- Comprehensive tests
+```c
+#include "ipv6.h"
 
+// Parse an IPv6 address
+ipv6_address_full_t addr;
+if (ipv6_from_str("2001:db8::1", 11, &addr)) {
+    // Access the parsed address
+    // addr.address.components[0] == 0x2001
+    // addr.address.components[1] == 0x0db8
+}
 
+// Parse with port and CIDR
+if (ipv6_from_str("[2001:db8::1/64]:8080", 21, &addr)) {
+    printf("Port: %u\n", addr.port);           // 8080
+    printf("CIDR: %u\n", addr.mask);           // 64
+    printf("Has port: %d\n", addr.flags & IPV6_FLAG_HAS_PORT);
+}
+
+// Parse IPv6 with zone ID (RFC 4007)
+if (ipv6_from_str("fe80::1%eth0", 12, &addr)) {
+    printf("Zone ID: %.*s\n", addr.iface_len, addr.iface); // "eth0"
+}
+
+// Convert back to string (round-trip)
+char output[IPV6_STRING_SIZE];
+size_t len = ipv6_to_str(&addr, output, sizeof(output));
+printf("Address: %s\n", output);  // "fe80::1%eth0"
+
+// Compare addresses
+ipv6_address_full_t addr1, addr2;
+ipv6_from_str("::1", 3, &addr1);
+ipv6_from_str("::1", 3, &addr2);
+if (ipv6_compare(&addr1, &addr2, 0) == IPV6_COMPARE_OK) {
+    printf("Addresses are equal\n");
+}
+```
 
 ## RFC 4007 Scoped IPv6 Addresses
 
