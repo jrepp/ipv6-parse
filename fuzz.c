@@ -150,13 +150,23 @@ void fuzz_ipv6_compare(int num_iterations) {
 }
 
 int main(int argc, const char **argv) {
-    (void)argc; (void)argv;
+    int num_iterations = NUM_ITERATIONS;
 
+    // Allow overriding iterations via command line argument
+    if (argc > 1) {
+        num_iterations = atoi(argv[1]);
+        if (num_iterations <= 0) {
+            printf("Invalid iteration count: %s. Using default: %d\n", argv[1], NUM_ITERATIONS);
+            num_iterations = NUM_ITERATIONS;
+        }
+    }
+
+    printf("Running fuzz tests with %d iterations...\n", num_iterations);
     srand((unsigned int)time(NULL));
 
-    fuzz_ipv6_from_str(NUM_ITERATIONS);
-    fuzz_ipv6_to_str(NUM_ITERATIONS);
-    fuzz_ipv6_compare(NUM_ITERATIONS);
+    fuzz_ipv6_from_str(num_iterations);
+    fuzz_ipv6_to_str(num_iterations);
+    fuzz_ipv6_compare(num_iterations);
 
     return 0;
 }
