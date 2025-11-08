@@ -76,6 +76,7 @@ void fuzz_ipv6_to_str(int num_iterations) {
     printf("Fuzzing ipv6_to_str:\n");
     for (int i = 0; i < num_iterations; i++) {
         ipv6_address_full_t ipv6_address;
+        memset(&ipv6_address, 0, sizeof(ipv6_address_full_t));
         for (int j = 0; j < IPV6_NUM_COMPONENTS; j++) {
             ipv6_address.address.components[j] = rand() % 0xFFFF;
         }
@@ -106,6 +107,8 @@ void fuzz_ipv6_compare(int num_iterations) {
     for (int i = 0; i < num_iterations; i++) {
         ipv6_address_full_t ipv6_address1;
         ipv6_address_full_t ipv6_address2;
+        memset(&ipv6_address1, 0, sizeof(ipv6_address_full_t));
+        memset(&ipv6_address2, 0, sizeof(ipv6_address_full_t));
         for (int j = 0; j < IPV6_NUM_COMPONENTS; j++) {
             ipv6_address1.address.components[j] = rand() % 0xFFFF;
             ipv6_address2.address.components[j] = rand() % 0xFFFF;
