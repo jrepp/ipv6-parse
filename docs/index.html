@@ -227,6 +227,122 @@
             text-decoration: underline;
         }
 
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: #e0e0e0;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 200px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .batch-results {
+            margin-top: 20px;
+        }
+
+        .batch-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .batch-item.error {
+            border-left-color: #dc3545;
+        }
+
+        .batch-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .batch-item-input {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .batch-status {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .batch-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .batch-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .parse-btn {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+
+        .parse-btn:hover {
+            background: #5568d3;
+        }
+
+        .hidden {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .components {
                 grid-template-columns: repeat(2, 1fr);
@@ -251,67 +367,104 @@
             </div>
 
             <div id="app" style="display: none;">
-                <div class="input-section">
-                    <label for="address-input">Enter IPv6 or IPv4 Address:</label>
-                    <input
-                        type="text"
-                        id="address-input"
-                        placeholder="e.g., 2001:db8::1, ::ffff:192.0.2.1, [::1]:8080"
-                        autofocus
-                    />
-                    <div class="examples">
-                        <button class="example-btn" data-addr="2001:db8::1">2001:db8::1</button>
-                        <button class="example-btn" data-addr="::1">::1</button>
-                        <button class="example-btn" data-addr="[::1]:8080">[::1]:8080</button>
-                        <button class="example-btn" data-addr="fe80::1%eth0">fe80::1%eth0</button>
-                        <button class="example-btn" data-addr="::ffff:192.0.2.1">::ffff:192.0.2.1</button>
-                        <button class="example-btn" data-addr="2001:db8::1/64">2001:db8::1/64</button>
-                        <button class="example-btn" data-addr="192.168.1.1:8080">192.168.1.1:8080</button>
-                        <button class="example-btn" data-addr="[2001:db8::1/64%eth0]:443">[2001:db8::1/64%eth0]:443</button>
+                <!-- Mode Toggle -->
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="single-mode-btn">Single Address</button>
+                    <button class="mode-btn" id="batch-mode-btn">Batch Mode</button>
+                </div>
+
+                <!-- Single Address Mode -->
+                <div id="single-mode">
+                    <div class="input-section">
+                        <label for="address-input">Enter IPv6 or IPv4 Address:</label>
+                        <input
+                            type="text"
+                            id="address-input"
+                            placeholder="e.g., 2001:db8::1, ::ffff:192.0.2.1, [::1]:8080"
+                            autofocus
+                        />
+                        <div class="examples">
+                            <button class="example-btn" data-addr="2001:db8::1">2001:db8::1</button>
+                            <button class="example-btn" data-addr="::1">::1</button>
+                            <button class="example-btn" data-addr="::">::</button>
+                            <button class="example-btn" data-addr="[::1]:8080">[::1]:8080</button>
+                            <button class="example-btn" data-addr="fe80::1%eth0">fe80::1%eth0</button>
+                            <button class="example-btn" data-addr="::ffff:192.0.2.1">::ffff:192.0.2.1</button>
+                            <button class="example-btn" data-addr="2001:db8::1/64">2001:db8::1/64</button>
+                            <button class="example-btn" data-addr="ff02::1">ff02::1</button>
+                            <button class="example-btn" data-addr="::ffff:0:192.0.2.1">::ffff:0:192.0.2.1</button>
+                            <button class="example-btn" data-addr="2001:db8:85a3::8a2e:370:7334">2001:db8:85a3::8a2e:370:7334</button>
+                            <button class="example-btn" data-addr="[fe80::1%lo0]:443">[fe80::1%lo0]:443</button>
+                            <button class="example-btn" data-addr="[2001:db8::1/64%eth0]:443">[2001:db8::1/64%eth0]:443</button>
+                            <button class="example-btn" data-addr="::1/128">::1/128</button>
+                            <button class="example-btn" data-addr="2001:db8::/32">2001:db8::/32</button>
+                            <button class="example-btn" data-addr="fe80::/10">fe80::/10</button>
+                        </div>
+                    </div>
+
+                    <div id="status" class="status"></div>
+
+                    <div id="results" class="results">
+                        <h2 style="margin-bottom: 20px;">Parsed Results</h2>
+
+                        <div class="result-item" style="grid-column: 1/-1;">
+                            <h3>Formatted Address</h3>
+                            <div class="value" id="formatted"></div>
+                        </div>
+
+                        <!-- Flags moved higher in hierarchy -->
+                        <div style="margin-top: 20px;">
+                            <h3 style="margin-bottom: 15px;">Address Flags</h3>
+                            <div class="flags">
+                                <div class="flag" id="flag-port">Has Port</div>
+                                <div class="flag" id="flag-mask">Has CIDR Mask</div>
+                                <div class="flag" id="flag-ipv4-embed">IPv4 Embedded</div>
+                                <div class="flag" id="flag-ipv4-compat">IPv4 Compatible</div>
+                            </div>
+                        </div>
+
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <h3>Port</h3>
+                                <div class="value" id="port">-</div>
+                            </div>
+
+                            <div class="result-item">
+                                <h3>CIDR Mask</h3>
+                                <div class="value" id="mask">-</div>
+                            </div>
+
+                            <div class="result-item">
+                                <h3>Zone ID</h3>
+                                <div class="value" id="zone">-</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 30px;">
+                            <h3 style="margin-bottom: 15px;">Address Components (Hexadecimal)</h3>
+                            <div class="components" id="components"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="status" class="status"></div>
-
-                <div id="results" class="results">
-                    <h2 style="margin-bottom: 20px;">Parsed Results</h2>
-
-                    <div class="result-item" style="grid-column: 1/-1;">
-                        <h3>Formatted Address</h3>
-                        <div class="value" id="formatted"></div>
+                <!-- Batch Mode -->
+                <div id="batch-mode" class="hidden">
+                    <div class="input-section">
+                        <label for="batch-input">Enter Multiple Addresses (one per line):</label>
+                        <textarea
+                            id="batch-input"
+                            placeholder="Enter addresses, one per line:
+2001:db8::1
+::1
+[::1]:8080
+fe80::1%eth0
+::ffff:192.0.2.1
+2001:db8::1/64"
+                        ></textarea>
+                        <button class="parse-btn" id="parse-batch-btn">Parse All Addresses</button>
                     </div>
 
-                    <div class="result-grid">
-                        <div class="result-item">
-                            <h3>Port</h3>
-                            <div class="value" id="port">-</div>
-                        </div>
-
-                        <div class="result-item">
-                            <h3>CIDR Mask</h3>
-                            <div class="value" id="mask">-</div>
-                        </div>
-
-                        <div class="result-item">
-                            <h3>Zone ID</h3>
-                            <div class="value" id="zone">-</div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 30px;">
-                        <h3 style="margin-bottom: 15px;">Address Components (Hexadecimal)</h3>
-                        <div class="components" id="components"></div>
-                    </div>
-
-                    <div style="margin-top: 30px;">
-                        <h3 style="margin-bottom: 15px;">Address Flags</h3>
-                        <div class="flags">
-                            <div class="flag" id="flag-port">Has Port</div>
-                            <div class="flag" id="flag-mask">Has CIDR Mask</div>
-                            <div class="flag" id="flag-ipv4-embed">IPv4 Embedded</div>
-                            <div class="flag" id="flag-ipv4-compat">IPv4 Compatible</div>
-                        </div>
-                    </div>
+                    <div id="batch-results" class="batch-results"></div>
                 </div>
             </div>
         </div>
@@ -348,7 +501,10 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('app').style.display = 'block';
 
-            // Set up event listeners
+            // Set up mode toggle
+            setupModeToggle();
+
+            // Set up single mode event listeners
             const input = document.getElementById('address-input');
             input.addEventListener('input', parseAddress);
             input.addEventListener('keyup', (e) => {
@@ -363,6 +519,9 @@
                 });
             });
 
+            // Batch mode button
+            document.getElementById('parse-batch-btn').addEventListener('click', parseBatch);
+
             console.log('IPv6 Parser ready! Version:', parser.getVersion());
         }).catch(err => {
             document.getElementById('loading').textContent = 'Error loading WASM module: ' + err;
@@ -370,7 +529,74 @@
         });
 
         /**
-         * Parse and display address - Now dramatically simplified!
+         * Setup mode toggle between single and batch mode
+         */
+        function setupModeToggle() {
+            const singleModeBtn = document.getElementById('single-mode-btn');
+            const batchModeBtn = document.getElementById('batch-mode-btn');
+            const singleMode = document.getElementById('single-mode');
+            const batchMode = document.getElementById('batch-mode');
+
+            singleModeBtn.addEventListener('click', () => {
+                singleModeBtn.classList.add('active');
+                batchModeBtn.classList.remove('active');
+                singleMode.classList.remove('hidden');
+                batchMode.classList.add('hidden');
+            });
+
+            batchModeBtn.addEventListener('click', () => {
+                batchModeBtn.classList.add('active');
+                singleModeBtn.classList.remove('active');
+                batchMode.classList.remove('hidden');
+                singleMode.classList.add('hidden');
+            });
+        }
+
+        /**
+         * Unified helper to create diagnostic output HTML for an address
+         */
+        function createAddressDiagnostics(addr) {
+            // Create flags HTML
+            const flags = `
+                <div class="flags">
+                    <div class="flag ${addr.hasPort ? '' : 'disabled'}">Has Port</div>
+                    <div class="flag ${addr.hasMask ? '' : 'disabled'}">Has CIDR Mask</div>
+                    <div class="flag ${addr.isIPv4Embedded ? '' : 'disabled'}">IPv4 Embedded</div>
+                    <div class="flag ${addr.isIPv4Compatible ? '' : 'disabled'}">IPv4 Compatible</div>
+                </div>
+            `;
+
+            // Create metadata HTML
+            const metadata = `
+                <div class="result-grid">
+                    <div class="result-item">
+                        <h3>Port</h3>
+                        <div class="value">${addr.port !== null ? addr.port : '-'}</div>
+                    </div>
+                    <div class="result-item">
+                        <h3>CIDR Mask</h3>
+                        <div class="value">${addr.mask !== null ? `/${addr.mask}` : '-'}</div>
+                    </div>
+                    <div class="result-item">
+                        <h3>Zone ID</h3>
+                        <div class="value">${addr.zone || '-'}</div>
+                    </div>
+                </div>
+            `;
+
+            // Create components HTML
+            const componentsHTML = addr.components.map((component, i) => `
+                <div class="component">
+                    <div class="label">[${i}]</div>
+                    <div class="hex">0x${addr.getComponentHex(i)}</div>
+                </div>
+            `).join('');
+
+            return { flags, metadata, componentsHTML };
+        }
+
+        /**
+         * Parse and display address in single mode
          */
         function parseAddress() {
             const input = document.getElementById('address-input').value.trim();
@@ -396,6 +622,13 @@
                 // Display formatted address
                 document.getElementById('formatted').textContent = addr.formatted;
 
+                // Use unified diagnostic helper
+                const diagnostics = createAddressDiagnostics(addr);
+
+                // Update flags (higher in hierarchy now)
+                const flagsContainer = results.querySelector('.flags');
+                flagsContainer.innerHTML = diagnostics.flags.match(/<div class="flag.*?<\/div>/g).join('');
+
                 // Display metadata
                 document.getElementById('port').textContent = addr.port !== null ? addr.port : '-';
                 document.getElementById('mask').textContent = addr.mask !== null ? `/${addr.mask}` : '-';
@@ -403,22 +636,7 @@
 
                 // Display components
                 const componentsDiv = document.getElementById('components');
-                componentsDiv.innerHTML = '';
-                addr.components.forEach((component, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'component';
-                    div.innerHTML = `
-                        <div class="label">[${i}]</div>
-                        <div class="hex">0x${addr.getComponentHex(i)}</div>
-                    `;
-                    componentsDiv.appendChild(div);
-                });
-
-                // Update flag indicators
-                document.getElementById('flag-port').className = addr.hasPort ? 'flag' : 'flag disabled';
-                document.getElementById('flag-mask').className = addr.hasMask ? 'flag' : 'flag disabled';
-                document.getElementById('flag-ipv4-embed').className = addr.isIPv4Embedded ? 'flag' : 'flag disabled';
-                document.getElementById('flag-ipv4-compat').className = addr.isIPv4Compatible ? 'flag' : 'flag disabled';
+                componentsDiv.innerHTML = diagnostics.componentsHTML;
 
             } catch (err) {
                 // Handle parse errors gracefully
@@ -431,6 +649,88 @@
                 }
                 results.classList.remove('show');
             }
+        }
+
+        /**
+         * Parse and display multiple addresses in batch mode
+         */
+        function parseBatch() {
+            const input = document.getElementById('batch-input').value.trim();
+            const resultsContainer = document.getElementById('batch-results');
+
+            if (!input) {
+                resultsContainer.innerHTML = '<div class="status error">❌ Please enter at least one address</div>';
+                return;
+            }
+
+            // Split by newlines and filter out empty lines
+            const addresses = input.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (addresses.length === 0) {
+                resultsContainer.innerHTML = '<div class="status error">❌ No valid addresses found</div>';
+                return;
+            }
+
+            // Parse all addresses
+            const results = addresses.map(addr => {
+                try {
+                    const parsed = parser.parse(addr);
+                    return { input: addr, success: true, data: parsed };
+                } catch (err) {
+                    return { input: addr, success: false, error: err };
+                }
+            });
+
+            // Display results using unified helper
+            const successCount = results.filter(r => r.success).length;
+            const html = `
+                <div class="status ${successCount === addresses.length ? 'success' : 'error'}" style="display: block;">
+                    Parsed ${successCount} of ${addresses.length} addresses
+                    ${successCount < addresses.length ? `(${addresses.length - successCount} failed)` : ''}
+                </div>
+                ${results.map((result, idx) => {
+                    if (result.success) {
+                        const diag = createAddressDiagnostics(result.data);
+                        return `
+                            <div class="batch-item">
+                                <div class="batch-item-header">
+                                    <div class="batch-item-input">${result.input}</div>
+                                    <div class="batch-status success">✓ Valid</div>
+                                </div>
+                                <div class="result-item" style="margin-bottom: 15px;">
+                                    <h3>Formatted Address</h3>
+                                    <div class="value">${result.data.formatted}</div>
+                                </div>
+                                <div style="margin-bottom: 15px;">
+                                    <h3 style="margin-bottom: 10px; font-size: 0.9em; color: #666;">Flags</h3>
+                                    ${diag.flags}
+                                </div>
+                                ${diag.metadata}
+                                <div style="margin-top: 20px;">
+                                    <h3 style="margin-bottom: 10px; font-size: 0.9em; color: #666;">Components</h3>
+                                    <div class="components">${diag.componentsHTML}</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="batch-item error">
+                                <div class="batch-item-header">
+                                    <div class="batch-item-input">${result.input}</div>
+                                    <div class="batch-status error">✗ Invalid</div>
+                                </div>
+                                <div class="status error" style="margin: 0; display: block;">
+                                    ${result.error.message || 'Parse error'}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('')}
+            `;
+
+            resultsContainer.innerHTML = html;
         }
 
         // Clean up on page unload
