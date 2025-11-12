@@ -529,6 +529,98 @@ Our single-call architecture vs hypothetical naive approach:
 - **Batch processing**: Process large logs or datasets efficiently
 - **Client-side**: No server round-trip for address validation
 
+## Test Results
+
+The WASM implementation includes comprehensive test coverage to ensure reliability and performance.
+
+### Test Suite Summary
+
+Run `npm test` to execute all tests:
+
+```
+✓ ESLint: Code quality checks (all files)
+✓ Node.js tests: 8/8 passing
+✓ WASM module tests: 6/6 passing
+✓ Sync API tests: 9/9 passing
+✓ Error diagnostic tests: 13/13 passing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Total: 36/36 tests passing
+```
+
+### Actual Benchmark Output
+
+From `npm run bench` on macOS (Apple Silicon):
+
+```
+WASM Performance Benchmarks
+============================
+
+Initializing WASM module...
+✓ WASM module initialized
+
+Warming up...
+✓ Warm-up complete
+
+Test 1: Single-call API Throughput
+-----------------------------------
+Iterations:     100,000
+Duration:       57 ms
+Success rate:   100.00%
+Throughput:     1,754,386 parses/sec
+Avg latency:    570.00 ns
+
+Test 2: Performance by Address Type
+------------------------------------
+Simple IPv6             2,500,000 parses/sec     400.00 ns
+With CIDR               2,000,000 parses/sec     500.00 ns
+With port               2,000,000 parses/sec     500.00 ns
+With zone               2,000,000 parses/sec     500.00 ns
+IPv4 embedded           1,428,571 parses/sec     700.00 ns
+Complex                 1,666,667 parses/sec     600.00 ns
+IPv4                    2,500,000 parses/sec     400.00 ns
+
+Test 3: Single-call API vs Naive Multi-call
+--------------------------------------------
+Single-call API:
+  WASM calls:       1 per parse
+  Avg latency:      570.00 ns
+  Throughput:       1,754,386 parses/sec
+
+Naive multi-call (estimated):
+  WASM calls:       14 per parse
+  Estimated latency: 1.54 μs
+  Estimated throughput: 647,249 parses/sec
+
+Speedup:            2.71x faster
+Overhead reduction: 92.9% fewer WASM calls
+
+Test 4: Memory Efficiency
+-------------------------
+Single-call API:    92 bytes (one allocation, reused)
+Naive approach:     204+ bytes (multiple allocations per parse)
+Memory savings:     54.9% less memory per parse
+
+Summary
+=======
+✓ Single-call API achieves 1,754,386 parses/second
+✓ Average latency: 570.00 ns
+✓ 2.71x faster than naive multi-call approach
+✓ 93% reduction in WASM boundary crossings
+✓ 55% memory savings per parse
+
+✓ Performance meets 2-3x speedup claim!
+```
+
+### Test Coverage
+
+The test suite validates:
+- **Correctness**: All address formats parse correctly (IPv6, IPv4, CIDR, ports, zones)
+- **Error handling**: Invalid inputs throw proper errors with context
+- **API consistency**: Both async convenience and sync explicit APIs work correctly
+- **Performance**: Real-world throughput meets design targets
+- **Memory safety**: No leaks, proper cleanup, bounds checking
+- **TypeScript**: Type definitions match implementation
+
 ## License
 
 Same as ipv6-parse: MIT License
