@@ -34,14 +34,17 @@ class IPv6Parser {
   constructor(wasmModule) {
     this._module = wasmModule;
     this._resultPtr = null;
+    this._diagPtr = null;
     this._resultSize = 92; // sizeof(ipv6_parse_result_t)
+    this._diagSize = 144;  // sizeof(ipv6_diag_result_t)
 
-    // Get actual size from WASM if available
+    // Get actual sizes from WASM if available
     if (typeof this._module.ccall === 'function') {
       try {
         this._resultSize = this._module.ccall('ipv6_result_size', 'number', [], []);
+        this._diagSize = this._module.ccall('ipv6_diag_size', 'number', [], []);
       } catch (e) {
-        // Fall back to hardcoded size
+        // Fall back to hardcoded sizes
       }
     }
   }
@@ -69,7 +72,7 @@ class IPv6Parser {
      */
   parse(address) {
     if (typeof address !== 'string' || address.length === 0) {
-      throw new IPv6ParseError('Address must be a non-empty string', address);
+      throw new IPv6ParseError('Address must be a non-empty string', address, null);
     }
 
     // Allocate result buffer on first use
@@ -80,16 +83,26 @@ class IPv6Parser {
       }
     }
 
-    // Call WASM function to parse and populate result structure
+    // Allocate diagnostic buffer on first use
+    if (!this._diagPtr) {
+      this._diagPtr = this._module._malloc(this._diagSize);
+      if (!this._diagPtr) {
+        throw new Error('Failed to allocate memory for diagnostic result');
+      }
+    }
+
+    // Call WASM function with diagnostic support
     const success = this._module.ccall(
-      'ipv6_parse_full',
+      'ipv6_parse_full_diag',
       'number',
-      ['string', 'number'],
-      [address, this._resultPtr]
+      ['string', 'number', 'number'],
+      [address, this._resultPtr, this._diagPtr]
     );
 
     if (!success) {
-      throw new IPv6ParseError('Invalid IPv6/IPv4 address format', address);
+      // Read diagnostic information
+      const diag = this._readDiagnostic();
+      throw new IPv6ParseError('Invalid IPv6/IPv4 address format', address, diag);
     }
 
     // Read result from WASM memory and create address object
@@ -250,6 +263,55 @@ class IPv6Parser {
   }
 
   /**
+     * Read diagnostic information from WASM memory
+     * @private
+     * @returns {Object} Diagnostic information object
+     */
+  _readDiagnostic() {
+    if (!this._diagPtr) {
+      return null;
+    }
+
+    const heap = this._module.HEAPU8;
+    const ptr = this._diagPtr;
+
+    // Read event (uint32_t at offset 0)
+    const event = heap[ptr] |
+                 (heap[ptr + 1] << 8) |
+                 (heap[ptr + 2] << 16) |
+                 (heap[ptr + 3] << 24);
+
+    // Read position (uint32_t at offset 4)
+    const position = heap[ptr + 4] |
+                    (heap[ptr + 5] << 8) |
+                    (heap[ptr + 6] << 16) |
+                    (heap[ptr + 7] << 24);
+
+    // Read message (64 bytes at offset 8)
+    const message = this._module.UTF8ToString(ptr + 8);
+
+    // Read input (64 bytes at offset 72)
+    const input = this._module.UTF8ToString(ptr + 72);
+
+    // Read has_error (uint32_t at offset 136)
+    const hasError = heap[ptr + 136] |
+                    (heap[ptr + 137] << 8) |
+                    (heap[ptr + 138] << 16) |
+                    (heap[ptr + 139] << 24);
+
+    if (!hasError) {
+      return null;
+    }
+
+    return {
+      event,
+      position,
+      message,
+      input
+    };
+  }
+
+  /**
      * Clean up allocated memory
      *
      * Call this when done with the parser to free WASM memory.
@@ -259,6 +321,10 @@ class IPv6Parser {
     if (this._resultPtr) {
       this._module._free(this._resultPtr);
       this._resultPtr = null;
+    }
+    if (this._diagPtr) {
+      this._module._free(this._diagPtr);
+      this._diagPtr = null;
     }
   }
 }
@@ -427,11 +493,40 @@ class IPv6ParseError extends Error {
      * Create a parse error
      * @param {string} message - Error message
      * @param {string} input - Input that caused the error
+     * @param {Object} diagnostic - Diagnostic information from parser (optional)
      */
-  constructor(message, input) {
+  constructor(message, input, diagnostic) {
     super(message);
     this.name = 'IPv6ParseError';
     this.input = input;
+    this.diagnostic = diagnostic;
+
+    // If we have diagnostic info, enhance the error message
+    if (diagnostic && diagnostic.message) {
+      this.message = diagnostic.message;
+      this.position = diagnostic.position;
+      this.event = diagnostic.event;
+    }
+  }
+
+  /**
+     * Get a formatted error message with diagnostic details
+     * @returns {string} Formatted error message
+     */
+  getDetailedMessage() {
+    if (!this.diagnostic || !this.diagnostic.message) {
+      return `${this.message}: "${this.input}"`;
+    }
+
+    let msg = `${this.diagnostic.message}\n`;
+    msg += `Input: "${this.input}"\n`;
+    if (this.diagnostic.position !== undefined) {
+      msg += `Position: ${this.diagnostic.position}\n`;
+      // Add pointer to error position
+      msg += ' '.repeat(9) + this.input.substring(0, this.diagnostic.position);
+      msg += '^\n';
+    }
+    return msg;
   }
 }
 

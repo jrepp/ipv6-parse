@@ -639,10 +639,26 @@ fe80::1%eth0
                 componentsDiv.innerHTML = diagnostics.componentsHTML;
 
             } catch (err) {
-                // Handle parse errors gracefully
+                // Handle parse errors gracefully with diagnostic output
                 status.className = 'status error';
                 if (err instanceof IPv6ParseError) {
-                    status.textContent = `❌ ${err.message}`;
+                    // Display detailed diagnostic information
+                    if (err.diagnostic && err.diagnostic.message) {
+                        let errorHtml = `<strong>❌ ${err.message}</strong><br>`;
+                        errorHtml += `<div style="margin-top: 10px; font-family: 'Courier New', monospace;">`;
+                        errorHtml += `Input: "${err.input}"<br>`;
+                        if (err.position !== undefined) {
+                            errorHtml += `Error at position ${err.position}:<br>`;
+                            // Visual pointer to error position
+                            errorHtml += '<span style="color: #999;">' + err.input.substring(0, err.position) + '</span>';
+                            errorHtml += '<span style="color: #dc3545; font-weight: bold; font-size: 1.2em;">▼</span>';
+                            errorHtml += '<span style="color: #999;">' + err.input.substring(err.position) + '</span>';
+                        }
+                        errorHtml += `</div>`;
+                        status.innerHTML = errorHtml;
+                    } else {
+                        status.textContent = `❌ ${err.message}`;
+                    }
                 } else {
                     status.textContent = '❌ Unexpected error: ' + err.message;
                     console.error('Parse error:', err);
@@ -715,6 +731,18 @@ fe80::1%eth0
                             </div>
                         `;
                     } else {
+                        // Show diagnostic information for failed parses
+                        let errorDetails = result.error.message || 'Parse error';
+                        if (result.error.diagnostic && result.error.diagnostic.message) {
+                            errorDetails = result.error.diagnostic.message;
+                            if (result.error.position !== undefined) {
+                                errorDetails += '<br><div style="font-family: \'Courier New\', monospace; margin-top: 5px;">';
+                                errorDetails += '<span style="color: #999;">' + result.input.substring(0, result.error.position) + '</span>';
+                                errorDetails += '<span style="color: #dc3545; font-weight: bold;">▼</span>';
+                                errorDetails += '<span style="color: #999;">' + result.input.substring(result.error.position) + '</span>';
+                                errorDetails += '</div>';
+                            }
+                        }
                         return `
                             <div class="batch-item error">
                                 <div class="batch-item-header">
@@ -722,7 +750,7 @@ fe80::1%eth0
                                     <div class="batch-status error">✗ Invalid</div>
                                 </div>
                                 <div class="status error" style="margin: 0; display: block;">
-                                    ${result.error.message || 'Parse error'}
+                                    ${errorDetails}
                                 </div>
                             </div>
                         `;

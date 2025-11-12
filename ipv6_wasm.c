@@ -31,7 +31,7 @@
 /**
  * Packed result structure for efficient data transfer to JavaScript
  *
- * Total size: 80 bytes (cache-line friendly)
+ * Total size: 92 bytes (cache-line friendly)
  * Designed for single-copy read from JavaScript via heap access
  */
 typedef struct {
@@ -43,6 +43,21 @@ typedef struct {
     char formatted[48];      // 48 bytes - RFC 5952 formatted address string
     char zone[16];           // 16 bytes - zone ID / interface name
 } ipv6_parse_result_t;
+
+/**
+ * Diagnostic information structure for parse errors
+ *
+ * Total size: 144 bytes
+ * Contains detailed error information when parsing fails
+ */
+typedef struct {
+    uint32_t event;          // 4 bytes  - diagnostic event type (ipv6_diag_event_t)
+    uint32_t position;       // 4 bytes  - position in input where error occurred
+    char message[64];        // 64 bytes - error message
+    char input[64];          // 64 bytes - input string that caused error
+    uint32_t has_error;      // 4 bytes  - 1 if diagnostic was captured, 0 otherwise
+    uint32_t pad0;           // 4 bytes  - alignment padding
+} ipv6_diag_result_t;
 
 /**
  * Parse an IPv6/IPv4 address and return all data in one call
@@ -147,4 +162,110 @@ const char* ipv6_version() {
 EMSCRIPTEN_KEEPALIVE
 int ipv6_result_size() {
     return sizeof(ipv6_parse_result_t);
+}
+
+/**
+ * Get size of diagnostic result structure
+ *
+ * Helper for JavaScript to allocate the correct amount of memory.
+ * @return sizeof(ipv6_diag_result_t) in bytes
+ */
+EMSCRIPTEN_KEEPALIVE
+int ipv6_diag_size() {
+    return sizeof(ipv6_diag_result_t);
+}
+
+/**
+ * Diagnostic callback function to capture parse errors
+ */
+static void diag_callback(ipv6_diag_event_t event, const ipv6_diag_info_t* info, void* user_data) {
+    ipv6_diag_result_t* diag = (ipv6_diag_result_t*)user_data;
+    if (!diag || !info) {
+        return;
+    }
+
+    // Capture first error only
+    if (diag->has_error) {
+        return;
+    }
+
+    diag->event = (uint32_t)event;
+    diag->position = info->position;
+    diag->has_error = 1;
+
+    // Copy message (truncate if necessary)
+    if (info->message) {
+        size_t len = strlen(info->message);
+        if (len >= sizeof(diag->message)) {
+            len = sizeof(diag->message) - 1;
+        }
+        memcpy(diag->message, info->message, len);
+        diag->message[len] = '\0';
+    }
+
+    // Copy input (truncate if necessary)
+    if (info->input) {
+        size_t len = strlen(info->input);
+        if (len >= sizeof(diag->input)) {
+            len = sizeof(diag->input) - 1;
+        }
+        memcpy(diag->input, info->input, len);
+        diag->input[len] = '\0';
+    }
+}
+
+/**
+ * Parse an IPv6/IPv4 address with diagnostic output
+ *
+ * This function is similar to ipv6_parse_full but provides detailed diagnostic
+ * information when parsing fails.
+ *
+ * @param input  - Input address string
+ * @param result - Pointer to result structure (allocated by JavaScript)
+ * @param diag   - Pointer to diagnostic structure (allocated by JavaScript)
+ * @return 1 on success, 0 on parse failure (with diag populated)
+ *
+ * Example from JavaScript:
+ *   const resultPtr = Module._malloc(92);
+ *   const diagPtr = Module._malloc(144);
+ *   const success = Module.ccall('ipv6_parse_full_diag', 'number',
+ *                                ['string', 'number', 'number'],
+ *                                [address, resultPtr, diagPtr]);
+ */
+EMSCRIPTEN_KEEPALIVE
+int ipv6_parse_full_diag(const char* input, ipv6_parse_result_t* result, ipv6_diag_result_t* diag) {
+    if (!input || !result || !diag) {
+        return 0;
+    }
+
+    // Initialize diagnostic structure
+    memset(diag, 0, sizeof(ipv6_diag_result_t));
+
+    // Parse address using diagnostic version
+    ipv6_address_full_t addr;
+    memset(&addr, 0, sizeof(addr));
+    memset(result, 0, sizeof(ipv6_parse_result_t));
+
+    size_t len = strlen(input);
+    if (!ipv6_from_str_diag(input, len, &addr, diag_callback, diag)) {
+        // Parse failed - diagnostic info should be populated
+        return 0;
+    }
+
+    // Pack all data into result structure for single-copy transfer
+    memcpy(result->components, addr.address.components, sizeof(result->components));
+    result->port = addr.port;
+    result->mask = addr.mask;
+    result->flags = addr.flags;
+
+    // Format the address according to RFC 5952
+    ipv6_to_str(&addr, result->formatted, sizeof(result->formatted));
+
+    // Copy zone ID if present
+    if (addr.iface_len > 0 && addr.iface_len < sizeof(result->zone)) {
+        memcpy(result->zone, addr.iface, addr.iface_len);
+        result->zone[addr.iface_len] = '\0';
+    }
+
+    return 1;  // Success
 }
