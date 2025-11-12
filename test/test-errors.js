@@ -245,6 +245,18 @@ async function runTests() {
         console.log(`  message: "${err.message}"`);
         console.log(`  input: "${err.input}"`);
         console.log(`  stack: ${err.stack.split('\n')[0]}`);
+
+        // Check for diagnostic properties (new feature)
+        if (err.diagnostic && typeof err.diagnostic === 'object') {
+          console.log('  diagnostic: present ✓');
+          if (typeof err.diagnostic.message === 'string') {
+            console.log(`    - message: "${err.diagnostic.message}"`);
+          }
+          if (typeof err.diagnostic.position === 'number') {
+            console.log(`    - position: ${err.diagnostic.position}`);
+          }
+        }
+
         passed++;
       } else {
         console.error('✗ IPv6ParseError missing required properties');
