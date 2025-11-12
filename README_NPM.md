@@ -19,13 +19,17 @@ npm install ipv6-parse
 
 ## Quick Start
 
-### Basic Usage (Async API)
+> **Note**: The parse operations themselves are **synchronous** - only WASM module initialization is async. Choose the API pattern that fits your use case.
+
+### Async Convenience API (Recommended for Simple Scripts)
+
+The async API auto-initializes on first use. Perfect for simple scripts where convenience matters more than performance.
 
 ```javascript
 const ipv6 = require('ipv6-parse');
 
 async function main() {
-  // Parse an address
+  // Parse an address (async wrapper, auto-initializes)
   const addr = await ipv6.parse('2001:db8::1');
   console.log(addr.formatted);  // "2001:db8::1"
   console.log(addr.components); // [0x2001, 0x0db8, 0, 0, 0, 0, 0, 1]
@@ -42,37 +46,62 @@ async function main() {
   if (await ipv6.isValid('::1')) {
     console.log('Valid address!');
   }
+}
 
-  // Try parse (returns null on error)
-  const result = await ipv6.tryParse('invalid');
+main();
+```
+
+### Sync Explicit API (Recommended for Performance-Critical Code)
+
+Initialize once, then use **synchronous** parse operations. Best for high-performance applications, servers, or hot code paths.
+
+```javascript
+const { createParser } = require('ipv6-parse');
+
+async function main() {
+  // Initialize once at startup (this is async)
+  const { parser, IPv6ParseError } = await createParser();
+
+  // All parse operations are now synchronous!
+  const addr = parser.parse('2001:db8::1');         // Sync!
+  console.log(addr.formatted);
+
+  // Validate synchronously
+  if (parser.isValid('::1')) {                      // Sync!
+    console.log('Valid!');
+  }
+
+  // Try parse synchronously
+  const result = parser.tryParse('invalid');        // Sync!
   console.log(result); // null
 
-  // Compare addresses
-  if (await ipv6.equals('::1', '0:0:0:0:0:0:0:1')) {
-    console.log('Same address!');
+  // Parse 1 million addresses synchronously
+  for (let i = 0; i < 1000000; i++) {
+    parser.parse('2001:db8::1');                    // No async overhead!
   }
 }
 
 main();
 ```
 
-### Advanced Usage (Parser Class)
+### Alternative: Get Parser After Auto-Init
+
+If you start with the async API but later need sync operations, you can get the parser instance:
 
 ```javascript
-const { createParser } = require('ipv6-parse');
+const ipv6 = require('ipv6-parse');
 
 async function main() {
-  const { parser, IPv6ParseError } = await createParser();
+  // Use async API initially
+  await ipv6.parse('2001:db8::1');
 
-  try {
-    const addr = parser.parse('2001:db8::1');
-    console.log(addr.formatted);
-  } catch (err) {
-    if (err instanceof IPv6ParseError) {
-      console.error('Parse error:', err.message);
-      console.error('Input was:', err.input);
-    }
-  }
+  // Now get the sync parser
+  const { getParser } = require('ipv6-parse');
+  const parser = getParser();
+
+  // All operations are now synchronous
+  parser.parse('::1');           // Sync!
+  parser.isValid('fe80::1');     // Sync!
 }
 
 main();
@@ -98,7 +127,19 @@ async function example() {
 
 ## API Reference
 
-### Async Functional API (Recommended)
+### When to Use Which API?
+
+| Use Case | Recommended API | Why? |
+|----------|----------------|------|
+| Simple scripts, CLI tools | **Async Convenience API** | Auto-initialization, minimal boilerplate |
+| Web servers (Express, Fastify) | **Sync Explicit API** | Synchronous operations after startup, best performance |
+| Performance-critical loops | **Sync Explicit API** | No async overhead per parse |
+| Batch processing | **Sync Explicit API** | Maximum throughput (1.7M+ parses/sec) |
+| One-off parsing | **Async Convenience API** | Most convenient for single operations |
+
+### Async Convenience API
+
+Auto-initializes on first use. Use for convenience when performance isn't critical.
 
 #### `parse(address: string): Promise<IPv6Address>`
 
@@ -154,6 +195,67 @@ Get library version string.
 const version = await ipv6.getVersion();
 console.log(version); // "1.2.1-wasm"
 ```
+
+### Sync Explicit API
+
+Initialize once with `createParser()`, then use **synchronous** methods. Best for performance.
+
+#### `createParser(): Promise<ParserAPI>`
+
+Initialize the parser. Call once at startup, then use sync methods.
+
+```javascript
+const { createParser } = require('ipv6-parse');
+
+const { parser } = await createParser();
+
+// All subsequent operations are synchronous
+parser.parse('2001:db8::1');      // Sync!
+parser.isValid('::1');             // Sync!
+parser.tryParse('invalid');        // Sync!
+```
+
+#### `getParser(): IPv6Parser`
+
+Get the synchronous parser instance after initialization.
+
+```javascript
+const { getParser } = require('ipv6-parse');
+
+// Must call createParser() or use async API first
+await ipv6.parse('::1');
+
+// Now get sync parser
+const parser = getParser();
+parser.parse('2001:db8::1');       // Sync!
+```
+
+#### `getAPI(): IPv6API`
+
+Get the synchronous functional API after initialization.
+
+```javascript
+const { getAPI } = require('ipv6-parse');
+
+// Must initialize first
+await ipv6.parse('::1');
+
+// Now get sync API
+const ipv6Sync = getAPI();
+ipv6Sync.parse('2001:db8::1');     // Sync!
+ipv6Sync.isValid('::1');           // Sync!
+```
+
+#### Parser Class Methods (Synchronous)
+
+After calling `createParser()`, the parser instance has these **synchronous** methods:
+
+- `parser.parse(address: string): IPv6Address` - Parse synchronously, throws on error
+- `parser.tryParse(address: string): IPv6Address | null` - Parse synchronously, returns null on error
+- `parser.isValid(address: string): boolean` - Validate synchronously
+- `parser.equals(addr1: string, addr2: string, options?: ComparisonOptions): boolean` - Compare synchronously
+- `parser.getVersion(): string` - Get version synchronously
+- `parser.destroy(): void` - Free WASM memory (call when done)
 
 ### IPv6Address Object
 

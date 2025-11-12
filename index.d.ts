@@ -142,11 +142,13 @@ export interface ParserAPI {
 }
 
 // ============================================================================
-// Main async API (most convenient for Node.js)
+// Async Convenience API (auto-initializes on first use)
 // ============================================================================
+// Use these for simple scripts where convenience matters more than performance.
+// These functions auto-initialize on first use, so they're async.
 
 /**
- * Parse an IPv6/IPv4 address (async)
+ * Parse an IPv6/IPv4 address (async, auto-initializes)
  * @param address - Address to parse
  * @returns Promise that resolves to parsed address object
  * @throws IPv6ParseError if address is invalid
@@ -154,21 +156,21 @@ export interface ParserAPI {
 export function parse(address: string): Promise<IPv6Address>;
 
 /**
- * Try to parse an address, returning null on failure (async)
+ * Try to parse an address, returning null on failure (async, auto-initializes)
  * @param address - Address to parse
  * @returns Promise that resolves to parsed address or null
  */
 export function tryParse(address: string): Promise<IPv6Address | null>;
 
 /**
- * Check if an address is valid (async)
+ * Check if an address is valid (async, auto-initializes)
  * @param address - Address to validate
  * @returns Promise that resolves to true if valid
  */
 export function isValid(address: string): Promise<boolean>;
 
 /**
- * Compare two addresses for equality (async)
+ * Compare two addresses for equality (async, auto-initializes)
  * @param addr1 - First address
  * @param addr2 - Second address
  * @param options - Comparison options
@@ -181,16 +183,48 @@ export function equals(
 ): Promise<boolean>;
 
 /**
- * Get library version (async)
+ * Get library version (async, auto-initializes)
  * @returns Promise that resolves to version string
  */
 export function getVersion(): Promise<string>;
 
+// ============================================================================
+// Sync Explicit API (requires explicit initialization)
+// ============================================================================
+// Use these for performance-critical code or when you need synchronous operations.
+// Initialize once with createParser(), then use the sync methods.
+
 /**
- * Initialize the IPv6 parser (for advanced usage)
- * @returns Promise that resolves to the parser API
+ * Initialize the IPv6 parser
+ * Call this once at startup, then use parser.parse() synchronously.
+ * @returns Promise that resolves to the parser API with sync methods
+ * @example
+ * const { parser } = await createParser();
+ * const addr = parser.parse('2001:db8::1'); // Synchronous!
  */
 export function createParser(): Promise<ParserAPI>;
+
+/**
+ * Get synchronous parser instance (requires prior initialization)
+ * @returns Parser instance with synchronous methods
+ * @throws Error if not initialized (call createParser() first)
+ * @example
+ * await createParser();
+ * const parser = getParser();
+ * const addr = parser.parse('::1'); // Synchronous!
+ */
+export function getParser(): IPv6Parser;
+
+/**
+ * Get synchronous functional API (requires prior initialization)
+ * @returns Functional API object with synchronous methods
+ * @throws Error if not initialized (call createParser() first)
+ * @example
+ * await createParser();
+ * const ipv6 = getAPI();
+ * const addr = ipv6.parse('::1'); // Synchronous!
+ */
+export function getAPI(): IPv6API;
 
 // Export types
 export { IPv6Address, IPv6ParseError, IPv6Parser, ComparisonOptions };

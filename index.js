@@ -19,6 +19,11 @@ let IPv6Parser, IPv6Address, IPv6ParseError, ipv6;
  * @returns {Promise<Object>} Promise that resolves to the parser API
  */
 async function createParser() {
+  // If already initialized, return cached API
+  if (_api) {
+    return _api;
+  }
+
   // Load WASM module
   const wasmModule = await createIPv6Module();
 
@@ -53,13 +58,16 @@ async function createParser() {
     getVersion: () => parser.getVersion()
   };
 
-  return {
+  // Cache API for getParser() and getAPI()
+  _api = {
     parser,
     IPv6Parser,
     IPv6Address,
     IPv6ParseError,
     ipv6
   };
+
+  return _api;
 }
 
 // Synchronous API (uses lazy initialization)
@@ -127,23 +135,51 @@ async function getVersion() {
   return _api.ipv6.getVersion();
 }
 
-// Export both async API and initialization function
+/**
+ * Get a synchronous parser instance (requires prior initialization)
+ * @returns {Object} Parser instance with synchronous methods
+ * @throws {Error} If not initialized
+ */
+function getParser() {
+  if (!_api) {
+    throw new Error('Parser not initialized. Call createParser() first or use async API.');
+  }
+  return _api.parser;
+}
+
+/**
+ * Get the synchronous functional API (requires prior initialization)
+ * @returns {Object} Functional API with synchronous methods
+ * @throws {Error} If not initialized
+ */
+function getAPI() {
+  if (!_api) {
+    throw new Error('API not initialized. Call createParser() first or use async API.');
+  }
+  return _api.ipv6;
+}
+
+// Export both async convenience API and sync explicit API
 module.exports = {
-  // Async functional API (most convenient for Node.js)
-  parse,
-  tryParse,
-  isValid,
-  equals,
-  getVersion,
+  // === Async Convenience API (auto-initializes on first use) ===
+  // Use these for simple scripts where convenience matters more than performance
+  parse,        // async - auto-initializes
+  tryParse,     // async - auto-initializes
+  isValid,      // async - auto-initializes
+  equals,       // async - auto-initializes
+  getVersion,   // async - auto-initializes
 
-  // Initialization function (for advanced usage)
-  createParser,
+  // === Sync Explicit API (requires explicit initialization) ===
+  // Use these for performance-critical code or when you need sync operations
+  createParser, // Initialize once, then use parser.parse() synchronously
+  getParser,    // Get sync parser instance (throws if not initialized)
+  getAPI,       // Get sync functional API (throws if not initialized)
 
-  // Classes (available after initialization)
+  // === Classes (available after initialization) ===
   get IPv6Parser() { return IPv6Parser; },
   get IPv6Address() { return IPv6Address; },
   get IPv6ParseError() { return IPv6ParseError; },
 
-  // Functional API object (available after initialization)
+  // === Internal (available after initialization) ===
   get ipv6() { return ipv6; }
 };

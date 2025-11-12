@@ -15,10 +15,14 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run lint && npm run test:node && npm run test:wasm",
+    "test": "npm run lint && npm run test:node && npm run test:wasm && npm run test:sync && npm run test:errors",
     "test:node": "node test/test-node.js",
     "test:wasm": "node test/test-wasm.js",
     "test:api": "node test/test-api.js",
+    "test:sync": "node test/test-sync-api.js",
+    "test:errors": "node test/test-errors.js",
+    "test:performance": "node test/test-performance.js",
+    "bench": "node test/test-performance.js",
     "lint": "eslint index.js docs/ipv6-parse-api.js test/*.js",
     "lint:fix": "eslint --fix index.js docs/ipv6-parse-api.js test/*.js",
     "build": "./build_wasm.sh",

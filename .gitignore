@@ -3,6 +3,7 @@ build*/
 *.swo
 .idea/
 cmake-build-debug/
+node_modules/
 
 # Coverage files
 *.gcov
