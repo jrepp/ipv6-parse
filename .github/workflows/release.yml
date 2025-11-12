@@ -1,0 +1,270 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-matrix:
+    name: Build ${{ matrix.os }} (${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux builds
+          - os: ubuntu-20.04
+            compiler: gcc
+            build_type: Release
+          - os: ubuntu-22.04
+            compiler: gcc
+            build_type: Release
+          - os: ubuntu-22.04
+            compiler: clang
+            build_type: Release
+
+          # macOS builds
+          - os: macos-latest
+            compiler: clang
+            build_type: Release
+
+          # Windows builds
+          - os: windows-latest
+            compiler: msvc
+            build_type: Release
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up compiler (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            sudo apt-get update
+            sudo apt-get install -y clang
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          else
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+          fi
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DBUILD_SHARED_LIBS=ON \
+            -DENABLE_COVERAGE=OFF
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
+
+      - name: Test
+        run: ctest --test-dir build --build-config ${{ matrix.build_type }} --output-on-failure
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux' && matrix.compiler == 'gcc'
+        run: |
+          cd build
+          cpack -G "DEB;RPM;TGZ"
+
+      - name: Upload artifacts (Linux packages)
+        if: runner.os == 'Linux' && matrix.compiler == 'gcc'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages-${{ matrix.os }}
+          path: |
+            build/*.deb
+            build/*.rpm
+            build/*.tar.gz
+
+      - name: Upload artifacts (libraries)
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-${{ matrix.os }}-${{ matrix.compiler }}
+          path: |
+            build/bin/*
+
+  build-wasm:
+    name: Build WebAssembly
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Build WASM
+        run: ./build_wasm.sh
+
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-module
+          path: |
+            docs/ipv6-parse.js
+            docs/ipv6-parse-api.js
+            docs/ipv6-parse-api.d.ts
+            docs/index.html
+            docs/README.md
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-matrix, build-wasm]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          # Copy Linux packages
+          find artifacts/linux-packages-* -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.tar.gz" \) -exec cp {} release/ \;
+          # Copy WASM module
+          cd artifacts/wasm-module
+          zip -r ../../release/ipv6-parse-wasm.zip *
+          cd ../..
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          ## Release ${{ steps.version.outputs.version }}
+
+          ### Features
+          - Full RFC compliance (RFC 4291, RFC 5952, RFC 4007)
+          - Support for CIDR masks, ports, and zone IDs
+          - IPv4-mapped and IPv4-compatible addresses
+          - High-performance C implementation
+          - WebAssembly support for browsers
+          - NPM package for Node.js
+          - Native packages for Linux (deb/rpm)
+
+          ### Installation
+
+          **Debian/Ubuntu:**
+          ```bash
+          wget https://github.com/jrepp/ipv6-parse/releases/download/${{ steps.version.outputs.tag }}/ipv6-parse-${{ steps.version.outputs.version }}-Linux.deb
+          sudo dpkg -i ipv6-parse-${{ steps.version.outputs.version }}-Linux.deb
+          ```
+
+          **Fedora/RHEL/CentOS:**
+          ```bash
+          wget https://github.com/jrepp/ipv6-parse/releases/download/${{ steps.version.outputs.tag }}/ipv6-parse-${{ steps.version.outputs.version }}-Linux.rpm
+          sudo rpm -i ipv6-parse-${{ steps.version.outputs.version }}-Linux.rpm
+          ```
+
+          **NPM:**
+          ```bash
+          npm install ipv6-parse
+          ```
+
+          **WebAssembly:**
+          Download `ipv6-parse-wasm.zip` and extract to your project.
+
+          ### Documentation
+          - [README](https://github.com/jrepp/ipv6-parse#readme)
+          - [WASM Guide](https://github.com/jrepp/ipv6-parse/blob/master/README_WASM.md)
+          - [NPM Guide](https://github.com/jrepp/ipv6-parse/blob/master/README_NPM.md)
+          - [Interactive Demo](https://jrepp.github.io/ipv6-parse/)
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish to NPM
+    needs: [build-wasm, create-release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-module
+          path: docs
+
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: [build-wasm, create-release]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-module
+          path: docs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
