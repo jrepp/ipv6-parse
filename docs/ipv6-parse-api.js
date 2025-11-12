@@ -521,10 +521,18 @@ class IPv6ParseError extends Error {
     let msg = `${this.diagnostic.message}\n`;
     msg += `Input: "${this.input}"\n`;
     if (this.diagnostic.position !== undefined) {
-      msg += `Position: ${this.diagnostic.position}\n`;
-      // Add pointer to error position
-      msg += ' '.repeat(9) + this.input.substring(0, this.diagnostic.position);
-      msg += '^\n';
+      msg += `Error at position ${this.diagnostic.position}:\n`;
+      // Show input with character at error position highlighted
+      const before = this.input.substring(0, this.diagnostic.position);
+      const errorChar = this.diagnostic.position < this.input.length
+        ? `[${this.input.charAt(this.diagnostic.position)}]`
+        : '';
+      const after = this.diagnostic.position < this.input.length
+        ? this.input.substring(this.diagnostic.position + 1)
+        : '';
+      msg += before + errorChar + after + '\n';
+      // Add pointer line underneath
+      msg += ' '.repeat(this.diagnostic.position) + '^\n';
     }
     return msg;
   }
