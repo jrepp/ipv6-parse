@@ -11,7 +11,7 @@ A self-contained embeddable address parsing library with full RFC compliance.
 
 ## Features
 
-### 📦 Distribution Methods
+### Distribution Methods
 
 Install however works best for your project:
 
@@ -24,7 +24,7 @@ Install however works best for your project:
 - **CMake Integration** - pkg-config support, find_package()
 - **Source Code** - Single-header embedding in C/C++ projects
 
-### ✨ Core Capabilities
+### Core Capabilities
 
 **Full IPv6/IPv4 Support:**
 - Zero compression: `::1`, `2001:db8::1`
@@ -37,15 +37,15 @@ Install however works best for your project:
 - Complex combinations: `[2001:db8::1/64%eth0]:443`
 
 **Quality & Reliability:**
-- ✅ **RFC Compliant** - RFC 4291, RFC 5952, RFC 4007
-- ✅ **Memory Safe** - No dynamic allocation, bounds checking
-- ✅ **Round-trip Conversion** - Parse → Structure → String → Parse
-- ✅ **Rich Diagnostics** - Detailed error reporting with position information
-- ✅ **Comprehensive Tests** - 100+ test cases with fuzz testing
-- ✅ **CI/CD Pipeline** - Multi-compiler testing (GCC, Clang, MSVC, AppleClang)
-- ✅ **Cross-platform** - Linux, macOS, Windows
+- **RFC Compliant** - RFC 4291, RFC 5952, RFC 4007
+- **Memory Safe** - No dynamic allocation, bounds checking
+- **Round-trip Conversion** - Parse → Structure → String → Parse
+- **Rich Diagnostics** - Detailed error reporting with position information
+- **Comprehensive Tests** - 100+ test cases with fuzz testing
+- **CI/CD Pipeline** - Multi-compiler testing (GCC, Clang, MSVC, AppleClang)
+- **Cross-platform** - Linux, macOS, Windows
 
-### ⚡ Performance
+### Performance
 
 **NPM/WASM:** 1.75M+ parses/second, 570ns latency ([benchmarks](README_WASM.md#performance))
 
