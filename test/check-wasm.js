@@ -10,7 +10,7 @@ const apiPath = path.join(__dirname, '../docs/ipv6-parse-api.js');
 
 console.log('Checking for WASM build artifacts...\n');
 
-let missing = [];
+const missing = [];
 
 if (!fs.existsSync(wasmPath)) {
   missing.push('docs/ipv6-parse.js (WASM module)');
