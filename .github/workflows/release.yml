@@ -235,6 +235,15 @@ jobs:
           name: wasm-module
           path: docs
 
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test
+
       - name: Publish to NPM
         run: npm publish
         env:

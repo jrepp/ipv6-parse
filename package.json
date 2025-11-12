@@ -15,9 +15,16 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node test/test-node.js",
+    "test": "npm run lint && npm run test:node && npm run test:wasm",
+    "test:node": "node test/test-node.js",
+    "test:wasm": "node test/test-wasm.js",
+    "test:api": "node test/test-api.js",
+    "lint": "eslint index.js docs/ipv6-parse-api.js test/*.js",
+    "lint:fix": "eslint --fix index.js docs/ipv6-parse-api.js test/*.js",
     "build": "./build_wasm.sh",
-    "prepublishOnly": "npm run build"
+    "validate": "node test/validate-build.js",
+    "pretest": "node test/check-wasm.js",
+    "prepublishOnly": "npm run build && npm run test"
   },
   "repository": {
     "type": "git",
@@ -47,6 +54,8 @@
   "engines": {
     "node": ">=12.0.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  },
   "dependencies": {}
 }

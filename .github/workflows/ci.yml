@@ -153,3 +153,41 @@ jobs:
         run: |
           cd build
           ctest --output-on-failure -j -C Release
+
+  test-nodejs:
+    name: Node.js Tests and Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Build WASM
+        run: ./build_wasm.sh
+
+      - name: Validate build output
+        run: npm run validate
+
+      - name: Run Node.js tests
+        run: npm run test:node
+
+      - name: Run WASM tests
+        run: npm run test:wasm
+
+      - name: Run API tests
+        run: npm run test:api

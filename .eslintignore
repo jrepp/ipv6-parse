@@ -1,0 +1,17 @@
+# Build directories
+build/
+build_wasm/
+build_test/
+bin/
+
+# Node modules
+node_modules/
+
+# Generated WASM files (Emscripten output)
+docs/ipv6-parse.js
+
+# Coverage
+coverage/
+
+# Other
+*.min.js
