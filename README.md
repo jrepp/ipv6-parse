@@ -72,6 +72,12 @@ graph TB
 
 ## Features
 
+- **Multiple distribution methods**:
+  - **NPM package** for Node.js applications
+  - **WebAssembly** for browser-based applications
+  - **Native packages** for Debian, Ubuntu, Fedora, RHEL, CentOS
+  - **CMake integration** with pkg-config support
+  - **Source code** for embedding in C/C++ projects
 - **Single header, multi-platform** - Easy to embed in any C/C++ project
 - **Full IPv6 & IPv4 support** with all standard notations
   - Zero compression: `::1`, `2001:db8::1`
@@ -87,6 +93,85 @@ graph TB
 - **Rich diagnostics** - Detailed error reporting with position information
 - **Memory safe** - No dynamic allocation, bounds checking
 - **Comprehensive test suite** - 100+ test cases with fuzz testing
+
+## Installation
+
+### NPM (Node.js)
+
+```bash
+npm install ipv6-parse
+```
+
+```javascript
+const ipv6 = require('ipv6-parse');
+
+const addr = await ipv6.parse('2001:db8::1');
+console.log(addr.formatted);  // "2001:db8::1"
+```
+
+See [README_NPM.md](README_NPM.md) for complete NPM documentation.
+
+### WebAssembly (Browser)
+
+Download the [latest WASM release](https://github.com/jrepp/ipv6-parse/releases) or try the [interactive demo](https://jrepp.github.io/ipv6-parse/).
+
+```html
+<script src="ipv6-parse.js"></script>
+<script src="ipv6-parse-api.js"></script>
+<script>
+createIPv6Module().then(module => {
+    const parser = new IPv6Parser(module);
+    const addr = parser.parse('2001:db8::1');
+    console.log(addr.formatted);
+});
+</script>
+```
+
+See [README_WASM.md](README_WASM.md) for complete WASM documentation.
+
+### Linux Packages
+
+**Debian/Ubuntu:**
+```bash
+# Download from releases page
+wget https://github.com/jrepp/ipv6-parse/releases/latest/download/ipv6-parse-*-Linux.deb
+sudo dpkg -i ipv6-parse-*-Linux.deb
+```
+
+**Fedora/RHEL/CentOS:**
+```bash
+# Download from releases page
+wget https://github.com/jrepp/ipv6-parse/releases/latest/download/ipv6-parse-*-Linux.rpm
+sudo rpm -i ipv6-parse-*-Linux.rpm
+```
+
+### Building from Source
+
+**Static library (default):**
+```bash
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+```
+
+**Shared library:**
+```bash
+mkdir build && cd build
+cmake -DBUILD_SHARED_LIBS=ON ..
+make
+sudo make install
+```
+
+**WebAssembly:**
+```bash
+# Requires Emscripten SDK
+./build_wasm.sh
+```
+
+After installation, the library can be used with:
+- **pkg-config**: `gcc $(pkg-config --cflags --libs ipv6-parse) myapp.c -o myapp`
+- **CMake**: `find_package(ipv6-parse REQUIRED)` and `target_link_libraries(myapp PRIVATE ipv6-parse::ipv6-parse)`
 
 ## RFC Conformance
 
