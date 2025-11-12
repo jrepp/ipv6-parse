@@ -34,7 +34,8 @@ OUTPUT_DIR="docs"
 if [ "$1" == "clean" ]; then
     echo -e "${YELLOW}Cleaning previous build...${NC}"
     rm -rf "$BUILD_DIR"
-    rm -rf "$OUTPUT_DIR"
+    # Only remove generated WASM file, not source files in docs/
+    rm -f "$OUTPUT_DIR/ipv6-parse.js"
 fi
 
 # Create build directory
