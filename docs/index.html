@@ -649,16 +649,16 @@ fe80::1%eth0
                         errorHtml += `Input: "${err.input}"<br>`;
                         if (err.position !== undefined) {
                             errorHtml += `Error at position ${err.position}:<br>`;
-                            // Show input on one line
-                            errorHtml += '<div style="line-height: 1.5;">';
+                            // Show input with proper monospace alignment
+                            errorHtml += '<div style="line-height: 1.8; white-space: pre; font-family: monospace;">';
+                            // Line 1: Input with highlighted error character
                             errorHtml += '<span style="color: #666;">' + err.input.substring(0, err.position) + '</span>';
-                            // Highlight the error character in red with background
                             if (err.position < err.input.length) {
-                                errorHtml += '<span style="color: #fff; background: #dc3545; font-weight: bold; padding: 2px 4px; border-radius: 3px;">' + err.input.charAt(err.position) + '</span>';
+                                errorHtml += '<span style="color: #fff; background: #dc3545; font-weight: bold;">' + err.input.charAt(err.position) + '</span>';
                                 errorHtml += '<span style="color: #666;">' + err.input.substring(err.position + 1) + '</span>';
                             }
-                            errorHtml += '<br>';
-                            // Pointer line underneath
+                            errorHtml += '\n';
+                            // Line 2: Pointer directly under the error character
                             errorHtml += '<span style="color: #dc3545; font-weight: bold;">' + ' '.repeat(err.position) + '▲</span>';
                             errorHtml += '</div>';
                         }
@@ -744,14 +744,14 @@ fe80::1%eth0
                         if (result.error.diagnostic && result.error.diagnostic.message) {
                             errorDetails = result.error.diagnostic.message;
                             if (result.error.position !== undefined) {
-                                errorDetails += '<br><div style="font-family: \'Courier New\', monospace; margin-top: 8px; line-height: 1.5;">';
+                                errorDetails += '<br><div style="font-family: monospace; margin-top: 8px; line-height: 1.8; white-space: pre;">';
                                 // Show input with highlighted error character
                                 errorDetails += '<span style="color: #666;">' + result.input.substring(0, result.error.position) + '</span>';
                                 if (result.error.position < result.input.length) {
-                                    errorDetails += '<span style="color: #fff; background: #dc3545; font-weight: bold; padding: 2px 4px; border-radius: 3px;">' + result.input.charAt(result.error.position) + '</span>';
+                                    errorDetails += '<span style="color: #fff; background: #dc3545; font-weight: bold;">' + result.input.charAt(result.error.position) + '</span>';
                                     errorDetails += '<span style="color: #666;">' + result.input.substring(result.error.position + 1) + '</span>';
                                 }
-                                errorDetails += '<br>';
+                                errorDetails += '\n';
                                 // Pointer line underneath
                                 errorDetails += '<span style="color: #dc3545; font-weight: bold;">' + ' '.repeat(result.error.position) + '▲</span>';
                                 errorDetails += '</div>';
