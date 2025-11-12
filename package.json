@@ -1,0 +1,52 @@
+{
+  "name": "ipv6-parse",
+  "version": "1.2.1",
+  "description": "High-performance IPv6/IPv4 address parser with full RFC compliance (RFC 4291, RFC 5952, RFC 4007) compiled to WebAssembly",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "docs/ipv6-parse.js",
+    "docs/ipv6-parse-api.js",
+    "docs/ipv6-parse-api.d.ts",
+    "README.md",
+    "README_WASM.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/test-node.js",
+    "build": "./build_wasm.sh",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrepp/ipv6-parse.git"
+  },
+  "keywords": [
+    "ipv6",
+    "ipv4",
+    "parser",
+    "address",
+    "rfc4291",
+    "rfc5952",
+    "rfc4007",
+    "wasm",
+    "webassembly",
+    "cidr",
+    "port",
+    "zone-id",
+    "network"
+  ],
+  "author": "Jacob Repp <jacobrepp@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jrepp/ipv6-parse/issues"
+  },
+  "homepage": "https://github.com/jrepp/ipv6-parse#readme",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}
