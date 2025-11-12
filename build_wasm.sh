@@ -62,25 +62,103 @@ cd ..
 mkdir -p "$OUTPUT_DIR"
 
 # Compile the WASM module
+# Note: We wrap the module to properly wait for onRuntimeInitialized
 emcc ipv6.c ipv6_wasm.c \
     -I${BUILD_DIR} \
     -O3 \
     -s WASM=1 \
-    -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8"]' \
+    -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","HEAPU8","HEAPU16","HEAPU32"]' \
     -s EXPORTED_FUNCTIONS='["_malloc","_free"]' \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s MODULARIZE=1 \
-    -s EXPORT_NAME='createIPv6Module' \
+    -s EXPORT_NAME='_createIPv6ModuleInternal' \
     -s ENVIRONMENT='web' \
     -s SINGLE_FILE=1 \
     --no-entry \
-    -o "$OUTPUT_DIR/ipv6-parse.js"
+    -o "$OUTPUT_DIR/ipv6-parse-raw.js"
 
 # Check if build succeeded
-if [ ! -f "$OUTPUT_DIR/ipv6-parse.js" ]; then
+if [ ! -f "$OUTPUT_DIR/ipv6-parse-raw.js" ]; then
     echo -e "${RED}Error: WASM module not built${NC}"
     exit 1
 fi
+
+# Create wrapper that properly waits for runtime initialization
+cat > "$OUTPUT_DIR/ipv6-parse.js" << 'WRAPPER_EOF'
+// Wrapper for ipv6-parse WASM module
+// This ensures the module is fully initialized before resolving
+
+// Load the raw Emscripten module
+WRAPPER_EOF
+
+# Append a memory accessor helper before the raw module
+cat > "$OUTPUT_DIR/ipv6-parse.js" << 'HELPER_EOF'
+// Memory accessor helper - will be populated by Emscripten module
+let _wasmMemoryInstance = null;
+
+HELPER_EOF
+
+# Append the raw module
+cat "$OUTPUT_DIR/ipv6-parse-raw.js" >> "$OUTPUT_DIR/ipv6-parse.js"
+
+# Append the wrapper code
+cat >> "$OUTPUT_DIR/ipv6-parse.js" << 'WRAPPER_EOF'
+
+// Export wrapper that waits for runtime initialization
+async function createIPv6Module() {
+    let memoryRef = null;
+
+    const module = await _createIPv6ModuleInternal({
+        onRuntimeInitialized: function() {
+            // At this point, the WASM memory should be initialized
+            // Store reference to memory for use in wrapper
+            if (typeof wasmMemory !== 'undefined' && wasmMemory) {
+                memoryRef = wasmMemory;
+                _wasmMemoryInstance = wasmMemory;
+            }
+        }
+    });
+
+    // Create typed array views from the WASM memory buffer
+    // Use the captured memory reference or try to find it on the module
+    let buffer = null;
+
+    if (memoryRef && memoryRef.buffer) {
+        buffer = memoryRef.buffer;
+    } else if (_wasmMemoryInstance && _wasmMemoryInstance.buffer) {
+        buffer = _wasmMemoryInstance.buffer;
+    } else if (module.wasmMemory && module.wasmMemory.buffer) {
+        buffer = module.wasmMemory.buffer;
+    } else if (module.buffer) {
+        buffer = module.buffer;
+    } else if (module.asm && module.asm.memory && module.asm.memory.buffer) {
+        buffer = module.asm.memory.buffer;
+    }
+
+    if (buffer) {
+        module.HEAPU8 = new Uint8Array(buffer);
+        module.HEAPU16 = new Uint16Array(buffer);
+        module.HEAPU32 = new Uint32Array(buffer);
+    }
+    // Note: If HEAP arrays are not present at this point, they should have been
+    // set by Emscripten via EXPORTED_RUNTIME_METHODS
+
+    return module;
+}
+
+// For Node.js
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = createIPv6Module;
+}
+
+// For browsers
+if (typeof window !== 'undefined') {
+    window.createIPv6Module = createIPv6Module;
+}
+WRAPPER_EOF
+
+# Clean up raw file
+rm -f "$OUTPUT_DIR/ipv6-parse-raw.js"
 
 echo -e "${GREEN}✓${NC} WASM module built successfully"
 echo -e "${GREEN}✓${NC} Output: $OUTPUT_DIR/ipv6-parse.js"

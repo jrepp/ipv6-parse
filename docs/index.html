@@ -331,6 +331,16 @@
 
         // Initialize the WASM module with clean API
         createIPv6Module().then(wasmModule => {
+            // Wait for WASM to be fully ready
+            return new Promise((resolve) => {
+                if (wasmModule.HEAPU8 && wasmModule.HEAPU16 && wasmModule.HEAPU32) {
+                    resolve(wasmModule);
+                } else {
+                    // Wait a bit for initialization
+                    setTimeout(() => resolve(wasmModule), 100);
+                }
+            });
+        }).then(wasmModule => {
             // Create parser instance with clean JavaScript API
             parser = new IPv6Parser(wasmModule);
 
