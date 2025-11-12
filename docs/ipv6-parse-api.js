@@ -34,7 +34,7 @@ class IPv6Parser {
   constructor(wasmModule) {
     this._module = wasmModule;
     this._resultPtr = null;
-    this._resultSize = 80; // sizeof(ipv6_parse_result_t)
+    this._resultSize = 92; // sizeof(ipv6_parse_result_t)
 
     // Get actual size from WASM if available
     if (typeof this._module.ccall === 'function') {

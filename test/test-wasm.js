@@ -113,11 +113,19 @@ async function runTests() {
     try {
       const size = Module.ccall('ipv6_result_size', 'number', [], []);
 
-      if (size === 80) {
+      // Structure size should be 92 bytes (with padding):
+      // - components: 16 bytes (8 * uint16_t)
+      // - port: 2 bytes
+      // - pad0: 2 bytes (alignment)
+      // - mask: 4 bytes
+      // - flags: 4 bytes
+      // - formatted: 48 bytes
+      // - zone: 16 bytes
+      if (size === 92) {
         console.log(`✓ ipv6_result_size succeeded: ${size} bytes`);
         passed++;
       } else {
-        console.error('✗ ipv6_result_size returned unexpected value:', size);
+        console.error('✗ ipv6_result_size returned unexpected value:', size, '(expected 92)');
         failed++;
       }
     } catch (err) {
