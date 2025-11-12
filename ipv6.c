@@ -192,7 +192,7 @@ static const char* eventclass_str (eventclass_t input)
 #define INVALID_INPUT() \
     IPV6_TRACE("invalid input class (%d) in state: %s at position %d of '%s' (%c)\n", \
         input, state_str(state->current), state->position, state->input, state->input[state->position]); \
-    ipv6_error(state, IPV6_DIAG_INVALID_INPUT, "Invalid input"); \
+    ipv6_error(state, IPV6_DIAG_INVALID_INPUT, "Invalid address"); \
     return;
 
 //
@@ -778,7 +778,7 @@ bool IPV6_API_DEF(ipv6_from_str_diag) (
 
     if (!input || !*input || !out) {
         ipv6_error(&state, IPV6_DIAG_INVALID_INPUT,
-            "Invalid input");
+            "Invalid address");
         return false;
     }
 
