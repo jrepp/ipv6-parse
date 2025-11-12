@@ -34,9 +34,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-## We only build static binaries -- this is left here for our dependencies
-set(STATIC ON CACHE BOOL FORCE "Link libraries statically? Forced to ON")
-add_definitions(-DSTATICLIB)
+## Build options for library type
+option(BUILD_SHARED_LIBS "Build shared libraries instead of static" OFF)
+if(NOT BUILD_SHARED_LIBS)
+    set(STATIC ON CACHE BOOL FORCE "Link libraries statically? Forced to ON")
+    add_definitions(-DSTATICLIB)
+endif()
 
 SET(PARSE_TRACE 0 CACHE BOOL "Enable tracing of address parsing")
 SET(ENABLE_COVERAGE 0 CACHE BOOL "Enable code coverage reporting")
@@ -134,8 +137,17 @@ if (NOT IPV6_PARSE_LIBRARY_ONLY)
 endif ()
 
 add_library(ipv6-parse ${ipv6_sources})
-target_include_directories(ipv6-parse PUBLIC ${IPV6_CONFIG_HEADER_PATH})
-set_target_properties(ipv6-parse PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
+target_include_directories(ipv6-parse PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${IPV6_CONFIG_HEADER_PATH}>
+    $<INSTALL_INTERFACE:include>
+)
+set_target_properties(ipv6-parse PROPERTIES
+    COMPILE_FLAGS ${ipv6_target_compile_flags}
+    VERSION ${LIB_VERSION_STRING}
+    SOVERSION ${LIB_MAJOR_VERSION}
+    PUBLIC_HEADER "ipv6.h;${IPV6_CONFIG_HEADER_PATH}/ipv6_config.h"
+)
 
 if (PARSE_TRACE)
     message("Address parse tracing enabled")
@@ -152,3 +164,50 @@ foreach(flag_var
     string(REGEX REPLACE "/RTC[^ ]*" "" ${flag_var} "${${flag_var}}")
     string(REGEX REPLACE "/Od" "" ${flag_var} "${${flag_var}}")
 endforeach(flag_var)
+
+## Installation configuration
+include(GNUInstallDirs)
+
+# Install library
+install(TARGETS ipv6-parse
+    EXPORT ipv6-parse-targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# Configure and install pkg-config file
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/ipv6-parse.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse.pc
+    @ONLY
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
+
+# Install CMake package configuration
+install(EXPORT ipv6-parse-targets
+    FILE ipv6-parse-targets.cmake
+    NAMESPACE ipv6-parse::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ipv6-parse
+)
+
+# Create and install package config file
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ipv6-parse-config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ipv6-parse
+)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config-version.cmake
+    VERSION ${LIB_VERSION_STRING}
+    COMPATIBILITY SameMajorVersion
+)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config-version.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ipv6-parse
+)

@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+# ipv6-parse CMake package configuration file
+
+include("${CMAKE_CURRENT_LIST_DIR}/ipv6-parse-targets.cmake")
+
+check_required_components(ipv6-parse)

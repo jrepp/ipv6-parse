@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: ipv6-parse
+Description: IPv6/IPv4 address parser with full RFC compliance (RFC 4291, RFC 5952, RFC 4007)
+Version: @PROJECT_VERSION@
+URL: https://github.com/jrepp/ipv6-parse
+
+Cflags: -I${includedir}
+Libs: -L${libdir} -lipv6-parse
