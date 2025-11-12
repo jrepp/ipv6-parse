@@ -1,0 +1,18 @@
+{
+  "name": "ipv6-parse",
+  "version-string": "1.2.1",
+  "description": "Fast, RFC-compliant IPv6/IPv4 address parser with CIDR, port, and zone ID support",
+  "homepage": "https://github.com/jrepp/ipv6-parse",
+  "license": "MIT",
+  "supports": "!(uwp | arm)",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}

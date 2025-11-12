@@ -76,6 +76,9 @@ graph TB
   - **NPM package** for Node.js applications
   - **WebAssembly** for browser-based applications
   - **Native packages** for Debian, Ubuntu, Fedora, RHEL, CentOS
+  - **Homebrew** for macOS and Linux
+  - **Conan** for cross-platform C/C++ projects
+  - **vcpkg** for Visual Studio and CMake projects
   - **CMake integration** with pkg-config support
   - **Source code** for embedding in C/C++ projects
 - **Single header, multi-platform** - Easy to embed in any C/C++ project
@@ -144,6 +147,38 @@ sudo dpkg -i ipv6-parse-*-Linux.deb
 wget https://github.com/jrepp/ipv6-parse/releases/latest/download/ipv6-parse-*-Linux.rpm
 sudo rpm -i ipv6-parse-*-Linux.rpm
 ```
+
+### Homebrew (macOS/Linux)
+
+```bash
+# Install from HEAD (latest master)
+brew install --HEAD https://raw.githubusercontent.com/jrepp/ipv6-parse/master/Formula/ipv6-parse.rb
+```
+
+Optional: Build with WASM support:
+```bash
+brew install ipv6-parse --with-emscripten
+```
+
+### Conan (Cross-platform C/C++)
+
+```bash
+# Add to your conanfile.txt
+[requires]
+ipv6-parse/1.2.1
+
+# Or install directly
+conan create . ipv6-parse/1.2.1@
+```
+
+### vcpkg (Cross-platform C/C++)
+
+```bash
+# After copying port to vcpkg/ports/ipv6-parse
+vcpkg install ipv6-parse
+```
+
+See [README_PACKAGE_MANAGERS.md](README_PACKAGE_MANAGERS.md) for complete package manager documentation.
 
 ### Building from Source
 

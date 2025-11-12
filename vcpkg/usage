@@ -1,0 +1,18 @@
+ipv6-parse provides CMake targets:
+
+  find_package(ipv6-parse CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE ipv6-parse::ipv6-parse)
+
+ipv6-parse also provides pkg-config:
+
+  pkg_check_modules(IPV6_PARSE REQUIRED IMPORTED_TARGET ipv6-parse)
+  target_link_libraries(main PRIVATE PkgConfig::IPV6_PARSE)
+
+Command-line tool:
+
+  ipv6-parse-cli "2001:db8::1/64"
+  ipv6-parse-cli "[::1]:8080"
+  ipv6-parse-cli "fe80::1%eth0"
+
+For more information, see:
+  https://github.com/jrepp/ipv6-parse
