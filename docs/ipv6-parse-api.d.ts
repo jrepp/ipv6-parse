@@ -11,7 +11,7 @@
 /**
  * Options for address comparison
  */
-export interface IPv6CompareOptions {
+export interface ComparisonOptions {
     /**
      * Ignore port numbers in comparison
      * @default false
@@ -30,6 +30,12 @@ export interface IPv6CompareOptions {
      */
     ignoreFormat?: boolean;
 }
+
+/**
+ * Alias for ComparisonOptions (for backward compatibility)
+ * @deprecated Use ComparisonOptions instead
+ */
+export type IPv6CompareOptions = ComparisonOptions;
 
 /**
  * Plain object representation of a parsed address
@@ -321,7 +327,7 @@ export class IPv6Parser {
     equals(
         addr1: string,
         addr2: string,
-        options?: IPv6CompareOptions
+        options?: ComparisonOptions
     ): boolean;
 
     /**
