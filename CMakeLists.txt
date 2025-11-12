@@ -211,3 +211,48 @@ install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config-version.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ipv6-parse
 )
+
+## CPack configuration for package generation
+set(CPACK_PACKAGE_NAME "ipv6-parse")
+set(CPACK_PACKAGE_VENDOR "Jacob Repp")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "IPv6/IPv4 address parser with full RFC compliance")
+set(CPACK_PACKAGE_DESCRIPTION "High-performance IPv6/IPv4 address parser supporting RFC 4291, RFC 5952, and RFC 4007. Includes support for CIDR masks, ports, zone IDs, and IPv4 embedding.")
+set(CPACK_PACKAGE_VERSION_MAJOR ${LIB_MAJOR_VERSION})
+set(CPACK_PACKAGE_VERSION_MINOR ${LIB_MINOR_VERSION})
+set(CPACK_PACKAGE_VERSION_PATCH ${LIB_PATCH_VERSION})
+set(CPACK_PACKAGE_VERSION ${LIB_VERSION_STRING})
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/jrepp/ipv6-parse")
+set(CPACK_PACKAGE_CONTACT "Jacob Repp <jacobrepp@gmail.com>")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+
+# Debian package configuration
+set(CPACK_DEBIAN_PACKAGE_SECTION "libs")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.17)")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Jacob Repp <jacobrepp@gmail.com>")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+# RPM package configuration
+set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+set(CPACK_RPM_PACKAGE_GROUP "System Environment/Libraries")
+set(CPACK_RPM_PACKAGE_REQUIRES "glibc >= 2.17")
+set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+
+# Source package configuration
+set(CPACK_SOURCE_GENERATOR "TGZ;ZIP")
+set(CPACK_SOURCE_IGNORE_FILES
+    "/\\.git/"
+    "/\\.github/"
+    "/\\.vscode/"
+    "/\\.idea/"
+    "/build/"
+    "/build_wasm/"
+    "/build_test/"
+    "\\.swp$"
+    "\\.swo$"
+    "~$"
+    "\\.DS_Store$"
+)
+
+include(CPack)

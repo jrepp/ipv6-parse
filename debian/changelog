@@ -1,0 +1,12 @@
+ipv6-parse (1.2.1-1) unstable; urgency=medium
+
+  * Initial Debian package release
+  * Full RFC compliance (RFC 4291, RFC 5952, RFC 4007)
+  * Support for CIDR masks, ports, and zone IDs
+  * IPv4-mapped and IPv4-compatible address handling
+  * High-performance C implementation
+  * Shared and static library support
+  * pkg-config integration
+  * CMake package configuration
+
+ -- Jacob Repp <jacobrepp@gmail.com>  Wed, 12 Nov 2025 00:00:00 +0000
