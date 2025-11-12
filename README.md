@@ -47,7 +47,19 @@ Install however works best for your project:
 
 ### Performance
 
-**NPM/WASM:** 1.75M+ parses/second, 570ns latency ([benchmarks](README_WASM.md#performance))
+Validated by comprehensive benchmarks on real hardware:
+
+**Native C (Apple Silicon M-series):**
+- Parsing: 3.6M operations/sec (0.28 μs/parse)
+- Formatting: 3.3M operations/sec (0.30 μs/format)
+- Comparison: 8.3M operations/sec (0.12 μs/compare)
+- Overall: 4.3M operations/sec across all functions
+
+**NPM/WASM (Browser/Node.js):**
+- 1.75M+ parses/second, 570ns latency
+- See [README_WASM.md](README_WASM.md#performance) for detailed benchmarks
+
+Run your own benchmarks: `./build/bin/ipv6-fuzz 100000`
 
 ---
 

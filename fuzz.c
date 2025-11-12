@@ -26,11 +26,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 #include "ipv6.h"
 
 #define MAX_INPUT_LENGTH 100
 #define MAX_OUTPUT_LENGTH 200
 #define NUM_ITERATIONS 1000
+
+// Benchmark timing utilities
+static double get_time_ms(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
+}
 
 char* generate_random_string(int length) {
     // Include all relevant characters for IPv6/IPv4 parsing including edge case chars
@@ -44,8 +52,12 @@ char* generate_random_string(int length) {
     return str;
 }
 
-void fuzz_ipv6_from_str(int num_iterations) {
-    printf("Fuzzing ipv6_from_str:\n");
+void fuzz_ipv6_from_str(int num_iterations, int verbose) {
+    printf("Fuzzing ipv6_from_str with %d iterations:\n", num_iterations);
+
+    int success_count = 0;
+    double start_time = get_time_ms();
+
     for (int i = 0; i < num_iterations; i++) {
         int input_length = rand() % (MAX_INPUT_LENGTH + 1);
         char* input_string = generate_random_string(input_length);
@@ -56,25 +68,34 @@ void fuzz_ipv6_from_str(int num_iterations) {
 
         bool result = ipv6_from_str(input_string, input_bytes, &ipv6_address);
 
-        printf("Input: %s\n", input_string);
-        printf("Parsing result: %s\n", result ? "true" : "false");
-        printf("Parsed address: ");
-        for (int j = 0; j < IPV6_NUM_COMPONENTS; j++) {
-            printf("%x ", ipv6_address.address.components[j]);
+        if (result) {
+            success_count++;
         }
-        printf("\n");
-        printf("Mask: %u\n", ipv6_address.mask);
-        printf("Port: %u\n", ipv6_address.port);
-        printf("Flags: %u\n", ipv6_address.flags);
-        printf("---\n");
+
+        if (verbose && i < 10) {
+            printf("  Input: %s -> %s\n", input_string, result ? "VALID" : "INVALID");
+        }
 
         free(input_string);
     }
+
+    double elapsed_ms = get_time_ms() - start_time;
+    double ops_per_sec = (num_iterations / elapsed_ms) * 1000.0;
+
+    printf("  Completed: %d iterations in %.2f ms\n", num_iterations, elapsed_ms);
+    printf("  Success rate: %.1f%% (%d/%d valid)\n",
+           (success_count * 100.0) / num_iterations, success_count, num_iterations);
+    printf("  Performance: %.0f parses/sec (%.2f μs/parse)\n",
+           ops_per_sec, (elapsed_ms * 1000.0) / num_iterations);
     printf("\n");
 }
 
-void fuzz_ipv6_to_str(int num_iterations) {
-    printf("Fuzzing ipv6_to_str:\n");
+void fuzz_ipv6_to_str(int num_iterations, int verbose) {
+    printf("Fuzzing ipv6_to_str with %d iterations:\n", num_iterations);
+
+    int success_count = 0;
+    double start_time = get_time_ms();
+
     for (int i = 0; i < num_iterations; i++) {
         ipv6_address_full_t ipv6_address;
         memset(&ipv6_address, 0, sizeof(ipv6_address_full_t));
@@ -88,23 +109,32 @@ void fuzz_ipv6_to_str(int num_iterations) {
         char output_string[MAX_OUTPUT_LENGTH];
         size_t output_bytes = ipv6_to_str(&ipv6_address, output_string, sizeof(output_string));
 
-        printf("Generated address:\n");
-        for (int j = 0; j < IPV6_NUM_COMPONENTS; j++) {
-            printf("%x ", ipv6_address.address.components[j]);
+        if (output_bytes > 0) {
+            success_count++;
         }
-        printf("\n");
-        printf("Mask: %u\n", ipv6_address.mask);
-        printf("Port: %u\n", ipv6_address.port);
-        printf("Flags: %u\n", ipv6_address.flags);
-        printf("Output string: %s\n", output_string);
-        printf("Output bytes: %zu\n", output_bytes);
-        printf("---\n");
+
+        if (verbose && i < 10) {
+            printf("  Output: %s (%zu bytes)\n", output_string, output_bytes);
+        }
     }
+
+    double elapsed_ms = get_time_ms() - start_time;
+    double ops_per_sec = (num_iterations / elapsed_ms) * 1000.0;
+
+    printf("  Completed: %d iterations in %.2f ms\n", num_iterations, elapsed_ms);
+    printf("  Success rate: %.1f%% (%d/%d)\n",
+           (success_count * 100.0) / num_iterations, success_count, num_iterations);
+    printf("  Performance: %.0f conversions/sec (%.2f μs/conversion)\n",
+           ops_per_sec, (elapsed_ms * 1000.0) / num_iterations);
     printf("\n");
 }
 
-void fuzz_ipv6_compare(int num_iterations) {
-    printf("Fuzzing ipv6_compare:\n");
+void fuzz_ipv6_compare(int num_iterations, int verbose) {
+    printf("Fuzzing ipv6_compare with %d iterations:\n", num_iterations);
+
+    int equal_count = 0;
+    double start_time = get_time_ms();
+
     for (int i = 0; i < num_iterations; i++) {
         ipv6_address_full_t ipv6_address1;
         ipv6_address_full_t ipv6_address2;
@@ -125,28 +155,23 @@ void fuzz_ipv6_compare(int num_iterations) {
 
         ipv6_compare_result_t result = ipv6_compare(&ipv6_address1, &ipv6_address2, ignore_flags);
 
-        printf("Address 1: ");
-        for (int j = 0; j < IPV6_NUM_COMPONENTS; j++) {
-            printf("%x ", ipv6_address1.address.components[j]);
+        if (result == IPV6_COMPARE_OK) {
+            equal_count++;
         }
-        printf("\n");
-        printf("Mask 1: %u\n", ipv6_address1.mask);
-        printf("Port 1: %u\n", ipv6_address1.port);
-        printf("Flags 1: %u\n", ipv6_address1.flags);
 
-        printf("Address 2: ");
-        for (int j = 0; j < IPV6_NUM_COMPONENTS; j++) {
-            printf("%x ", ipv6_address2.address.components[j]);
+        if (verbose && i < 10) {
+            printf("  Compare result: %d\n", result);
         }
-        printf("\n");
-        printf("Mask 2: %u\n", ipv6_address2.mask);
-        printf("Port 2: %u\n", ipv6_address2.port);
-        printf("Flags 2: %u\n", ipv6_address2.flags);
-
-        printf("Ignore flags: %u\n", ignore_flags);
-        printf("Comparison result: %d\n", result);
-        printf("---\n");
     }
+
+    double elapsed_ms = get_time_ms() - start_time;
+    double ops_per_sec = (num_iterations / elapsed_ms) * 1000.0;
+
+    printf("  Completed: %d iterations in %.2f ms\n", num_iterations, elapsed_ms);
+    printf("  Equal addresses: %.1f%% (%d/%d)\n",
+           (equal_count * 100.0) / num_iterations, equal_count, num_iterations);
+    printf("  Performance: %.0f comparisons/sec (%.2f μs/comparison)\n",
+           ops_per_sec, (elapsed_ms * 1000.0) / num_iterations);
     printf("\n");
 }
 
@@ -277,6 +302,7 @@ void fuzz_edge_cases(void) {
 
 int main(int argc, const char **argv) {
     int num_iterations = NUM_ITERATIONS;
+    int verbose = 0;
 
     // Allow overriding iterations via command line argument
     if (argc > 1) {
@@ -287,16 +313,36 @@ int main(int argc, const char **argv) {
         }
     }
 
-    printf("Running fuzz tests with %d iterations...\n", num_iterations);
+    // Check for verbose flag
+    if (argc > 2 && strcmp(argv[2], "-v") == 0) {
+        verbose = 1;
+    }
+
+    printf("========================================\n");
+    printf("IPv6 Parser Fuzz Testing & Benchmarks\n");
+    printf("========================================\n");
+    printf("Iterations: %d\n", num_iterations);
+    printf("Mode: %s\n\n", verbose ? "Verbose" : "Benchmark");
+
     srand((unsigned int)time(NULL));
+
+    double total_start = get_time_ms();
 
     // Run targeted edge case tests first
     fuzz_edge_cases();
 
-    // Then run random fuzz tests
-    fuzz_ipv6_from_str(num_iterations);
-    fuzz_ipv6_to_str(num_iterations);
-    fuzz_ipv6_compare(num_iterations);
+    // Then run random fuzz tests with benchmarks
+    fuzz_ipv6_from_str(num_iterations, verbose);
+    fuzz_ipv6_to_str(num_iterations, verbose);
+    fuzz_ipv6_compare(num_iterations, verbose);
+
+    double total_elapsed = get_time_ms() - total_start;
+
+    printf("========================================\n");
+    printf("Total test time: %.2f seconds\n", total_elapsed / 1000.0);
+    printf("Total operations: %d\n", num_iterations * 3);
+    printf("Overall rate: %.0f ops/sec\n", (num_iterations * 3) / (total_elapsed / 1000.0));
+    printf("========================================\n");
 
     return 0;
 }
