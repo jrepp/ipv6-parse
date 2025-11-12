@@ -194,27 +194,44 @@ class IPv6Parser {
      * @private
      */
     _readResult() {
+        const ptr = this._resultPtr;
+
+        // Access heap arrays safely - check if they exist first
+        if (!this._module.HEAPU8 || !this._module.HEAPU16 || !this._module.HEAPU32) {
+            throw new Error('WASM memory not initialized');
+        }
+
         const heap = this._module.HEAPU8;
         const heap16 = this._module.HEAPU16;
         const heap32 = this._module.HEAPU32;
-        const ptr = this._resultPtr;
+
+        // Verify pointer is valid
+        if (!ptr || ptr < 0 || ptr >= heap.length) {
+            throw new Error('Invalid memory pointer');
+        }
 
         // Read components (8 x uint16_t at offset 0-15)
         const components = [];
+        const componentOffset = ptr >> 1; // Divide by 2 for 16-bit array indexing
         for (let i = 0; i < 8; i++) {
-            // Use HEAPU16 for proper 16-bit reads
-            const wordOffset = ptr / 2 + i;
-            components.push(heap16[wordOffset]);
+            const idx = componentOffset + i;
+            if (idx >= heap16.length) {
+                throw new Error('Memory access out of bounds');
+            }
+            components.push(heap16[idx]);
         }
 
         // Read port (uint16_t at byte offset 16)
-        const port = heap16[ptr / 2 + 8];
+        const portIdx = (ptr >> 1) + 8;
+        const port = portIdx < heap16.length ? heap16[portIdx] : 0;
 
         // Read mask (uint32_t at byte offset 20)
-        const mask = heap32[(ptr + 20) / 4];
+        const maskIdx = (ptr + 20) >> 2; // Divide by 4 for 32-bit array indexing
+        const mask = maskIdx < heap32.length ? heap32[maskIdx] : 0;
 
         // Read flags (uint32_t at byte offset 24)
-        const flags = heap32[(ptr + 24) / 4];
+        const flagsIdx = (ptr + 24) >> 2;
+        const flags = flagsIdx < heap32.length ? heap32[flagsIdx] : 0;
 
         // Read formatted string (48 bytes at offset 28)
         const formatted = this._module.UTF8ToString(ptr + 28);
