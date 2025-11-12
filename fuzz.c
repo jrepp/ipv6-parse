@@ -26,7 +26,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/time.h>
+
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <sys/time.h>
+#endif
+
 #include "ipv6.h"
 
 #define MAX_INPUT_LENGTH 100
@@ -35,9 +41,16 @@
 
 // Benchmark timing utilities
 static double get_time_ms(void) {
+#ifdef _WIN32
+    LARGE_INTEGER frequency, counter;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&counter);
+    return (counter.QuadPart * 1000.0) / frequency.QuadPart;
+#else
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
+#endif
 }
 
 char* generate_random_string(int length) {
