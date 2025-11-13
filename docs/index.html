@@ -516,66 +516,229 @@
             margin-top: 24px;
         }
 
-        .batch-item {
-            background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
-            padding: 24px;
+        .batch-summary {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .batch-summary-card {
+            flex: 1;
+            padding: 16px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .batch-summary-card.success {
+            background: linear-gradient(135deg, #d1f4e0 0%, #e8f8f0 100%);
+            border: 2px solid #a3e6c6;
+        }
+
+        .batch-summary-card.error {
+            background: linear-gradient(135deg, #ffe5e8 0%, #fff0f2 100%);
+            border: 2px solid #ffc4cd;
+        }
+
+        .batch-summary-icon {
+            font-size: 2em;
+            line-height: 1;
+        }
+
+        .batch-summary-content {
+            flex: 1;
+        }
+
+        .batch-summary-number {
+            font-size: 1.8em;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .batch-summary-label {
+            font-size: 0.85em;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .batch-table {
+            background: white;
             border-radius: 14px;
-            margin-bottom: 18px;
-            border-left: 4px solid transparent;
-            border-image: linear-gradient(180deg, #667eea, #764ba2) 1;
-            box-shadow:
-                0 4px 12px rgba(0,0,0,0.06),
-                0 0 0 1px rgba(0,0,0,0.04);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: slideIn 0.4s ease;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
         }
 
-        .batch-item:hover {
-            transform: translateY(-2px);
-            box-shadow:
-                0 8px 20px rgba(0,0,0,0.1),
-                0 0 0 1px rgba(102, 126, 234, 0.1);
+        .batch-table-header {
+            display: grid;
+            grid-template-columns: 40px 2fr 120px 180px 60px;
+            gap: 12px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 700;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #495057;
         }
 
-        .batch-item.error {
-            border-image: linear-gradient(180deg, #dc3545, #c82333) 1;
+        .batch-table-row {
+            display: grid;
+            grid-template-columns: 40px 2fr 120px 180px 60px;
+            gap: 12px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            align-items: center;
+        }
+
+        .batch-table-row:hover {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            transform: translateX(4px);
+        }
+
+        .batch-table-row.success:hover {
+            background: linear-gradient(135deg, #f0fdf7 0%, #ffffff 100%);
+        }
+
+        .batch-table-row.error:hover {
             background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
         }
 
-        .batch-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #f0f0f0;
+        .batch-table-row.expanded {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-bottom: none;
         }
 
-        .batch-item-input {
-            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+        .batch-row-number {
+            text-align: center;
             font-weight: 600;
-            font-size: 1.05em;
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+
+        .batch-row-address {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-weight: 500;
             color: #1f2937;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        .batch-status {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        .batch-row-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85em;
+            font-weight: 600;
         }
 
-        .batch-status.success {
-            background: linear-gradient(135deg, #d1f4e0 0%, #a3e6c6 100%);
+        .batch-row-status.success {
             color: #0d5c2d;
         }
 
-        .batch-status.error {
-            background: linear-gradient(135deg, #ffe5e8 0%, #ffc4cd 100%);
+        .batch-row-status.error {
             color: #a91429;
+        }
+
+        .batch-row-status-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 0.7em;
+        }
+
+        .batch-row-status.success .batch-row-status-icon {
+            background: #a3e6c6;
+            color: #0d5c2d;
+        }
+
+        .batch-row-status.error .batch-row-status-icon {
+            background: #ffc4cd;
+            color: #a91429;
+        }
+
+        .batch-row-properties {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            font-size: 0.75em;
+        }
+
+        .batch-prop-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+
+        .batch-prop-badge.ipv6 {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+        }
+
+        .batch-prop-badge.ipv4 {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+        }
+
+        .batch-prop-badge.embed {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+
+        .batch-prop-badge.port {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+        }
+
+        .batch-prop-badge.mask {
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+            color: #991b1b;
+        }
+
+        .batch-prop-badge.zone {
+            background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);
+            color: #6b21a8;
+        }
+
+        .batch-row-expand {
+            text-align: center;
+            font-size: 1.2em;
+            color: #9ca3af;
+            transition: transform 0.2s ease;
+        }
+
+        .batch-table-row.expanded .batch-row-expand {
+            transform: rotate(180deg);
+        }
+
+        .batch-detail {
+            display: none;
+            padding: 24px;
+            background: #fafbfc;
+            border-bottom: 1px solid #f0f0f0;
+            animation: slideIn 0.3s ease;
+        }
+
+        .batch-detail.visible {
+            display: block;
+        }
+
+        .batch-detail-content {
+            max-width: 900px;
         }
 
         .button-group {
@@ -691,6 +854,46 @@
 
             .secondary-btn {
                 flex: 1;
+            }
+
+            .batch-summary {
+                flex-direction: column;
+            }
+
+            .batch-table-header {
+                grid-template-columns: 30px 1fr 80px;
+                gap: 8px;
+                padding: 12px 16px;
+                font-size: 0.75em;
+            }
+
+            .batch-table-header > div:nth-child(4),
+            .batch-table-header > div:nth-child(5) {
+                display: none;
+            }
+
+            .batch-table-row {
+                grid-template-columns: 30px 1fr 80px;
+                gap: 8px;
+                padding: 12px 16px;
+            }
+
+            .batch-table-row > div:nth-child(4),
+            .batch-table-row > div:nth-child(5) {
+                display: none;
+            }
+
+            .batch-row-address {
+                font-size: 0.85em;
+            }
+
+            .batch-row-status {
+                font-size: 0.75em;
+                gap: 4px;
+            }
+
+            .batch-detail {
+                padding: 16px;
             }
         }
 
@@ -840,54 +1043,108 @@ fe80::1%eth0
     <script>
         let parser;
 
-        // Comprehensive test set from repository test.c
+        // Comprehensive test set from repository test.c plus additional diverse examples
         const TEST_ADDRESSES = [
+            // Loopback addresses
+            "::1",
+            "127.0.0.1",
+            "[::1]:8080",
+            "127.0.0.1:8080",
+
+            // Unspecified/wildcard addresses
+            "::",
+            "0.0.0.0",
+            "::0",
+
             // Basic IPv6 formats
+            "2001:db8::1",
+            "2001:0db8:0a0b:12f0:0:0:0:1",
+            "2001:db8:a0b:12f0::1",
+            "2001:db8:85a3::8a2e:370:7334",
+            "2001:db8:85a3:0:0:8a2e:370:7334",
             "::1:2:3:4:5",
             "0:0:0:1:2:3:4:5",
             "1:2::3:4:5",
             "1:2:0:0:0:3:4:5",
             "1:2:3:4:5::",
             "1:2:3:4:5:0:0:0",
-            "::",
-            "::0",
-            "::1",
-            "0:0:0::1",
             "ffff::1",
             "ffff:0:0:0:0:0:0:1",
-            "2001:0db8:0a0b:12f0:0:0:0:1",
-            "2001:db8:a0b:12f0::1",
 
-            // IPv4 embedded in IPv6
-            "::ffff:1.2.3.4",
+            // IPv4-mapped IPv6
             "::ffff:192.0.2.1",
+            "::ffff:127.0.0.1",
+            "::ffff:1.2.3.4",
+            "::ffff:10.0.0.1",
             "0:0:0:0:0:ffff:102:405",
 
+            // IPv4-compatible IPv6 (deprecated but supported)
+            "::192.0.2.1",
+            "::10.0.0.1",
+
+            // Link-local addresses
+            "fe80::1",
+            "fe80::1%eth0",
+            "fe80::1%lo0",
+            "fe80::1%en0",
+            "fe80::dead:beef%wlan0",
+            "fe80::42:acff:fe11:2%docker0",
+
+            // Multicast addresses
+            "ff02::1",
+            "ff02::2",
+            "ff02::1:ff00:1",
+            "ff05::1:3",
+            "ff0e::1",
+
+            // Unique local addresses (ULA)
+            "fc00::1",
+            "fd00::1",
+            "fdaa:bbcc:ddee::1",
+
+            // Documentation addresses
+            "2001:db8::1",
+            "2001:db8::/32",
+            "2001:db8:1234::1",
+
             // With CIDR masks
-            "::ffff:1.2.3.4/32",
-            "1:2:3:4:5:0:0:0/128",
+            "::1/128",
+            "::/0",
             "2001:db8::/32",
             "fe80::/10",
-            "::1/128",
+            "ff00::/8",
+            "::ffff:1.2.3.4/32",
+            "1:2:3:4:5:0:0:0/128",
+            "2001:db8:85a3::8a2e:370:7334/64",
+            "fc00::/7",
 
             // With ports
+            "[::1]:443",
+            "[::1]:8080",
             "[::1]:5678",
+            "[2001:db8::1]:443",
+            "[fe80::1%lo0]:443",
+            "[2001:db8::1/64%eth0]:443",
+            "[::ffff:192.0.2.1]:8080",
             "[::ffff:1.2.3.4/32]:5678",
             "[1:2:3:4:5:0:0:0/128]:5678",
             "[1:2:3:4:5::]:5678",
-            "[::1]:8080",
-            "[::1]:443",
-            "[fe80::1%lo0]:443",
-            "[2001:db8::1/64%eth0]:443",
 
-            // IPv4 formats
-            "1.2.3.4",
-            "1.2.3.4:5678",
-            "127.0.0.1",
-            "255.255.255.255",
-            "255.255.255.255:65123",
+            // IPv4 standard formats
             "192.168.1.1",
             "10.0.0.1",
+            "172.16.0.1",
+            "8.8.8.8",
+            "1.1.1.1",
+            "255.255.255.255",
+            "192.0.2.1",
+
+            // IPv4 with ports
+            "192.168.1.1:80",
+            "10.0.0.1:443",
+            "1.2.3.4:5678",
+            "127.0.0.1:3000",
+            "255.255.255.255:65123",
 
             // IPv4 shorthand
             "1",
@@ -896,17 +1153,27 @@ fe80::1%eth0
             "1.2:5678",
             "1.2.3",
             "1.2.3:5678",
-
-            // With zone IDs
-            "fe80::1%eth0",
-            "fe80::1%lo0",
-            "fe80::1%en0",
+            "1.2.3.4",
 
             // Complex combinations
             "[::ffff:192.0.2.1]:8080",
-            "2001:db8:85a3::8a2e:370:7334",
-            "ff02::1",
-            "::ffff:0:192.0.2.1"
+            "[fe80::1%eth0]:22",
+            "[2001:db8::1/48]:3306",
+            "::ffff:0:192.0.2.1",
+
+            // Edge cases - maximum values
+            "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+            "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128",
+
+            // Special addresses
+            "2002::1",  // 6to4
+            "2001::",   // Teredo
+            "2001:0::",  // Teredo
+            "64:ff9b::192.0.2.1",  // Well-known prefix for IPv4/IPv6 translation
+
+            // More zone ID variations
+            "fe80::1234:5678:90ab:cdef%eth1",
+            "fe80::a00:27ff:fe4e:66a1%enp0s3"
         ];
 
         // Initialize the WASM module with clean API
@@ -1044,7 +1311,7 @@ fe80::1%eth0
 
                 // Success - show results
                 status.className = 'status success';
-                status.textContent = '✓ Address parsed successfully';
+                status.textContent = 'Address parsed successfully';
                 results.classList.add('show');
 
                 // Display formatted address
@@ -1153,72 +1420,186 @@ fe80::1%eth0
                 }
             });
 
-            // Display results using unified helper
+            // Count successes and failures
             const successCount = results.filter(r => r.success).length;
-            const html = `
-                <div class="status ${successCount === addresses.length ? 'success' : 'error'}" style="display: block;">
-                    Parsed ${successCount} of ${addresses.length} addresses
-                    ${successCount < addresses.length ? `(${addresses.length - successCount} failed)` : ''}
-                </div>
-                ${results.map((result, idx) => {
-                    if (result.success) {
-                        const diag = createAddressDiagnostics(result.data);
-                        return `
-                            <div class="batch-item">
-                                <div class="batch-item-header">
-                                    <div class="batch-item-input">${result.input}</div>
-                                    <div class="batch-status success">✓ Valid</div>
-                                </div>
-                                <div class="result-item" style="margin-bottom: 15px;">
-                                    <h3>Formatted Address</h3>
-                                    <div class="value">${result.data.formatted}</div>
-                                </div>
-                                <div style="margin-bottom: 15px;">
-                                    <h3 style="margin-bottom: 10px; font-size: 0.9em; color: #666;">Flags</h3>
-                                    ${diag.flags}
-                                </div>
-                                ${diag.metadata}
-                                <div style="margin-top: 20px;">
-                                    <h3 style="margin-bottom: 10px; font-size: 0.9em; color: #666;">Components</h3>
-                                    <div class="components">${diag.componentsHTML}</div>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        // Show diagnostic information for failed parses
-                        let errorDetails = result.error.message || 'Parse error';
-                        if (result.error.diagnostic && result.error.diagnostic.message) {
-                            errorDetails = result.error.diagnostic.message;
-                            if (result.error.position !== undefined) {
-                                errorDetails += '<br><div style="font-family: monospace; margin-top: 8px; line-height: 1.8; white-space: pre;">';
-                                // Show input with highlighted error character
-                                errorDetails += '<span style="color: #666;">' + result.input.substring(0, result.error.position) + '</span>';
-                                if (result.error.position < result.input.length) {
-                                    errorDetails += '<span style="color: #fff; background: #dc3545; font-weight: bold;">' + result.input.charAt(result.error.position) + '</span>';
-                                    errorDetails += '<span style="color: #666;">' + result.input.substring(result.error.position + 1) + '</span>';
-                                }
-                                errorDetails += '\n';
-                                // Pointer line underneath
-                                errorDetails += '<span style="color: #dc3545; font-weight: bold;">' + ' '.repeat(result.error.position) + '▲</span>';
-                                errorDetails += '</div>';
-                            }
-                        }
-                        return `
-                            <div class="batch-item error">
-                                <div class="batch-item-header">
-                                    <div class="batch-item-input">${result.input}</div>
-                                    <div class="batch-status error">✗ Invalid</div>
-                                </div>
-                                <div class="status error" style="margin: 0; display: block;">
-                                    ${errorDetails}
-                                </div>
-                            </div>
-                        `;
-                    }
-                }).join('')}
+            const failureCount = results.length - successCount;
+
+            // Build summary cards
+            let summaryHTML = '<div class="batch-summary">';
+            if (successCount > 0) {
+                summaryHTML += `
+                    <div class="batch-summary-card success">
+                        <div class="batch-summary-icon">✓</div>
+                        <div class="batch-summary-content">
+                            <div class="batch-summary-number" style="color: #0d5c2d;">${successCount}</div>
+                            <div class="batch-summary-label" style="color: #0d5c2d;">Valid</div>
+                        </div>
+                    </div>
+                `;
+            }
+            if (failureCount > 0) {
+                summaryHTML += `
+                    <div class="batch-summary-card error">
+                        <div class="batch-summary-icon">✗</div>
+                        <div class="batch-summary-content">
+                            <div class="batch-summary-number" style="color: #a91429;">${failureCount}</div>
+                            <div class="batch-summary-label" style="color: #a91429;">Invalid</div>
+                        </div>
+                    </div>
+                `;
+            }
+            summaryHTML += '</div>';
+
+            // Build table
+            let tableHTML = `
+                <div class="batch-table">
+                    <div class="batch-table-header">
+                        <div>#</div>
+                        <div>Address</div>
+                        <div>Status</div>
+                        <div>Properties</div>
+                        <div></div>
+                    </div>
             `;
 
-            resultsContainer.innerHTML = html;
+            results.forEach((result, idx) => {
+                const statusClass = result.success ? 'success' : 'error';
+                const statusIcon = result.success ? '✓' : '✗';
+                const statusText = result.success ? 'Valid' : 'Invalid';
+
+                // Generate property badges for successful parses
+                let propertiesHTML = '';
+                if (result.success) {
+                    const props = [];
+                    const data = result.data;
+
+                    // Determine IP type
+                    if (data.isIPv4Compatible || data.isIPv4Embed) {
+                        if (data.isIPv4Embed) {
+                            props.push('<span class="batch-prop-badge embed">IPv4-Mapped</span>');
+                        } else {
+                            props.push('<span class="batch-prop-badge ipv4">IPv4</span>');
+                        }
+                    } else {
+                        props.push('<span class="batch-prop-badge ipv6">IPv6</span>');
+                    }
+
+                    // Add feature badges
+                    if (data.port !== null) {
+                        props.push(`<span class="batch-prop-badge port">:${data.port}</span>`);
+                    }
+                    if (data.mask !== null) {
+                        props.push(`<span class="batch-prop-badge mask">/${data.mask}</span>`);
+                    }
+                    if (data.zone) {
+                        props.push(`<span class="batch-prop-badge zone">%${data.zone}</span>`);
+                    }
+
+                    propertiesHTML = `<div class="batch-row-properties">${props.join('')}</div>`;
+                }
+
+                tableHTML += `
+                    <div class="batch-table-row ${statusClass}" data-index="${idx}">
+                        <div class="batch-row-number">${idx + 1}</div>
+                        <div class="batch-row-address">${result.input}</div>
+                        <div class="batch-row-status ${statusClass}">
+                            <span class="batch-row-status-icon">${statusIcon}</span>
+                            ${statusText}
+                        </div>
+                        <div>${propertiesHTML}</div>
+                        <div class="batch-row-expand">▼</div>
+                    </div>
+                    <div class="batch-detail" id="batch-detail-${idx}">
+                        <div class="batch-detail-content">
+                            ${generateDetailHTML(result, idx)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            tableHTML += '</div>';
+
+            resultsContainer.innerHTML = summaryHTML + tableHTML;
+
+            // Add click handlers for expandable rows
+            document.querySelectorAll('.batch-table-row').forEach(row => {
+                row.addEventListener('click', function() {
+                    const index = this.getAttribute('data-index');
+                    const detail = document.getElementById(`batch-detail-${index}`);
+                    const isExpanded = this.classList.contains('expanded');
+
+                    // Close all other expanded rows
+                    document.querySelectorAll('.batch-table-row.expanded').forEach(r => {
+                        if (r !== this) {
+                            r.classList.remove('expanded');
+                            const otherIndex = r.getAttribute('data-index');
+                            document.getElementById(`batch-detail-${otherIndex}`).classList.remove('visible');
+                        }
+                    });
+
+                    // Toggle current row
+                    if (isExpanded) {
+                        this.classList.remove('expanded');
+                        detail.classList.remove('visible');
+                    } else {
+                        this.classList.add('expanded');
+                        detail.classList.add('visible');
+                    }
+                });
+            });
+        }
+
+        /**
+         * Generate detailed HTML for a single result (matching single address mode)
+         */
+        function generateDetailHTML(result, idx) {
+            if (result.success) {
+                const diag = createAddressDiagnostics(result.data);
+                return `
+                    <div class="result-item" style="margin-bottom: 20px;">
+                        <h3>Formatted Address</h3>
+                        <div class="value">${result.data.formatted}</div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 12px; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Flags</h3>
+                        ${diag.flags}
+                    </div>
+
+                    ${diag.metadata}
+
+                    <div style="margin-top: 24px;">
+                        <h3 style="margin-bottom: 12px; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Components</h3>
+                        <div class="components">${diag.componentsHTML}</div>
+                    </div>
+                `;
+            } else {
+                // Error diagnostics
+                let errorHTML = `<div style="margin-bottom: 16px;"><strong style="color: #a91429; font-size: 1.1em;">❌ ${result.error.message || 'Parse error'}</strong></div>`;
+
+                if (result.error.diagnostic && result.error.diagnostic.message) {
+                    errorHTML += `<div style="margin-bottom: 12px; color: #721c24; font-weight: 500;">${result.error.diagnostic.message}</div>`;
+
+                    if (result.error.position !== undefined) {
+                        errorHTML += `<div style="margin-top: 16px; font-family: 'SF Mono', 'Consolas', 'Monaco', monospace; font-size: 0.95em;">`;
+                        errorHTML += `<div style="margin-bottom: 8px; color: #666;">Error at position ${result.error.position}:</div>`;
+                        errorHTML += '<div style="line-height: 1.8; white-space: pre; background: #fff; padding: 12px; border-radius: 8px; border: 2px solid #ffc4cd;">';
+
+                        // Show input with highlighted error character
+                        errorHTML += '<span style="color: #666;">' + result.input.substring(0, result.error.position) + '</span>';
+                        if (result.error.position < result.input.length) {
+                            errorHTML += '<span style="color: #fff; background: #dc3545; font-weight: bold;">' + result.input.charAt(result.error.position) + '</span>';
+                            errorHTML += '<span style="color: #666;">' + result.input.substring(result.error.position + 1) + '</span>';
+                        }
+                        errorHTML += '\n';
+                        // Pointer line underneath
+                        errorHTML += '<span style="color: #dc3545; font-weight: bold;">' + ' '.repeat(result.error.position) + '▲</span>';
+                        errorHTML += '</div></div>';
+                    }
+                }
+
+                return errorHTML;
+            }
         }
 
         // Clean up on page unload

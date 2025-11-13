@@ -9,6 +9,20 @@ A self-contained embeddable address parsing library with full RFC compliance.
 [![codecov](https://codecov.io/gh/jrepp/ipv6-parse/branch/master/graph/badge.svg)](https://codecov.io/gh/jrepp/ipv6-parse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+---
+
+## 🌐 Try it Live
+
+**Interactive Web Demo:** [https://jrepp.github.io/ipv6-parse/](https://jrepp.github.io/ipv6-parse/)
+
+Test IPv6/IPv4 address parsing in your browser with our modern WebAssembly-powered demo featuring:
+- Real-time parsing and validation
+- Batch testing mode with 60+ example addresses
+- Visual error diagnostics with position indicators
+- Zero dependencies, runs entirely in your browser
+
+---
+
 ## Features
 
 ### Distribution Methods
