@@ -34,9 +34,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-## We only build static binaries -- this is left here for our dependencies
-set(STATIC ON CACHE BOOL FORCE "Link libraries statically? Forced to ON")
-add_definitions(-DSTATICLIB)
+## Build options for library type
+option(BUILD_SHARED_LIBS "Build shared libraries instead of static" OFF)
+if(NOT BUILD_SHARED_LIBS)
+    set(STATIC ON CACHE BOOL FORCE "Link libraries statically? Forced to ON")
+    add_definitions(-DSTATICLIB)
+endif()
 
 SET(PARSE_TRACE 0 CACHE BOOL "Enable tracing of address parsing")
 SET(ENABLE_COVERAGE 0 CACHE BOOL "Enable code coverage reporting")
@@ -134,8 +137,17 @@ if (NOT IPV6_PARSE_LIBRARY_ONLY)
 endif ()
 
 add_library(ipv6-parse ${ipv6_sources})
-target_include_directories(ipv6-parse PUBLIC ${IPV6_CONFIG_HEADER_PATH})
-set_target_properties(ipv6-parse PROPERTIES COMPILE_FLAGS ${ipv6_target_compile_flags})
+target_include_directories(ipv6-parse PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${IPV6_CONFIG_HEADER_PATH}>
+    $<INSTALL_INTERFACE:include>
+)
+set_target_properties(ipv6-parse PROPERTIES
+    COMPILE_FLAGS ${ipv6_target_compile_flags}
+    VERSION ${LIB_VERSION_STRING}
+    SOVERSION ${LIB_MAJOR_VERSION}
+    PUBLIC_HEADER "ipv6.h;${IPV6_CONFIG_HEADER_PATH}/ipv6_config.h"
+)
 
 if (PARSE_TRACE)
     message("Address parse tracing enabled")
@@ -152,3 +164,95 @@ foreach(flag_var
     string(REGEX REPLACE "/RTC[^ ]*" "" ${flag_var} "${${flag_var}}")
     string(REGEX REPLACE "/Od" "" ${flag_var} "${${flag_var}}")
 endforeach(flag_var)
+
+## Installation configuration
+include(GNUInstallDirs)
+
+# Install library
+install(TARGETS ipv6-parse
+    EXPORT ipv6-parse-targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# Configure and install pkg-config file
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/ipv6-parse.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse.pc
+    @ONLY
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
+
+# Install CMake package configuration
+install(EXPORT ipv6-parse-targets
+    FILE ipv6-parse-targets.cmake
+    NAMESPACE ipv6-parse::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ipv6-parse
+)
+
+# Create and install package config file
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ipv6-parse-config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ipv6-parse
+)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config-version.cmake
+    VERSION ${LIB_VERSION_STRING}
+    COMPATIBILITY SameMajorVersion
+)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/ipv6-parse-config-version.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ipv6-parse
+)
+
+## CPack configuration for package generation
+set(CPACK_PACKAGE_NAME "ipv6-parse")
+set(CPACK_PACKAGE_VENDOR "Jacob Repp")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "IPv6/IPv4 address parser with full RFC compliance")
+set(CPACK_PACKAGE_DESCRIPTION "High-performance IPv6/IPv4 address parser supporting RFC 4291, RFC 5952, and RFC 4007. Includes support for CIDR masks, ports, zone IDs, and IPv4 embedding.")
+set(CPACK_PACKAGE_VERSION_MAJOR ${LIB_MAJOR_VERSION})
+set(CPACK_PACKAGE_VERSION_MINOR ${LIB_MINOR_VERSION})
+set(CPACK_PACKAGE_VERSION_PATCH ${LIB_PATCH_VERSION})
+set(CPACK_PACKAGE_VERSION ${LIB_VERSION_STRING})
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/jrepp/ipv6-parse")
+set(CPACK_PACKAGE_CONTACT "Jacob Repp <jacobrepp@gmail.com>")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+
+# Debian package configuration
+set(CPACK_DEBIAN_PACKAGE_SECTION "libs")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.17)")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Jacob Repp <jacobrepp@gmail.com>")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+# RPM package configuration
+set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+set(CPACK_RPM_PACKAGE_GROUP "System Environment/Libraries")
+set(CPACK_RPM_PACKAGE_REQUIRES "glibc >= 2.17")
+set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+
+# Source package configuration
+set(CPACK_SOURCE_GENERATOR "TGZ;ZIP")
+set(CPACK_SOURCE_IGNORE_FILES
+    "/\\.git/"
+    "/\\.github/"
+    "/\\.vscode/"
+    "/\\.idea/"
+    "/build/"
+    "/build_wasm/"
+    "/build_test/"
+    "\\.swp$"
+    "\\.swo$"
+    "~$"
+    "\\.DS_Store$"
+)
+
+include(CPack)

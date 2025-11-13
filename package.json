@@ -1,0 +1,66 @@
+{
+  "name": "ipv6-parse",
+  "version": "1.2.1",
+  "description": "High-performance IPv6/IPv4 address parser with full RFC compliance (RFC 4291, RFC 5952, RFC 4007) compiled to WebAssembly",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "docs/ipv6-parse.js",
+    "docs/ipv6-parse-api.js",
+    "docs/ipv6-parse-api.d.ts",
+    "README.md",
+    "README_WASM.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "npm run lint && npm run test:node && npm run test:wasm && npm run test:sync && npm run test:errors && npm run test:diagnostics",
+    "test:node": "node test/test-node.js",
+    "test:wasm": "node test/test-wasm.js",
+    "test:api": "node test/test-api.js",
+    "test:sync": "node test/test-sync-api.js",
+    "test:errors": "node test/test-errors.js",
+    "test:diagnostics": "node test/test-diagnostics.js",
+    "test:performance": "node test/test-performance.js",
+    "bench": "node test/test-performance.js",
+    "lint": "eslint index.js docs/ipv6-parse-api.js test/*.js",
+    "lint:fix": "eslint --fix index.js docs/ipv6-parse-api.js test/*.js",
+    "build": "./build_wasm.sh",
+    "validate": "node test/validate-build.js",
+    "pretest": "node test/check-wasm.js",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrepp/ipv6-parse.git"
+  },
+  "keywords": [
+    "ipv6",
+    "ipv4",
+    "parser",
+    "address",
+    "rfc4291",
+    "rfc5952",
+    "rfc4007",
+    "wasm",
+    "webassembly",
+    "cidr",
+    "port",
+    "zone-id",
+    "network"
+  ],
+  "author": "Jacob Repp <jacobrepp@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jrepp/ipv6-parse/issues"
+  },
+  "homepage": "https://github.com/jrepp/ipv6-parse#readme",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  },
+  "dependencies": {}
+}

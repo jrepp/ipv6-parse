@@ -1,8 +1,20 @@
+# Build directories
 build*/
+build/
+bin/
+cmake-build-*/
+
+# IDE and OS files
 *.swp
 *.swo
 .idea/
-cmake-build-debug/
+.vscode/
+*.sublime-*
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
 
 # Coverage files
 *.gcov
@@ -11,18 +23,46 @@ cmake-build-debug/
 *.gcno.*
 *.gcda.*
 
+# Object files and libraries
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.lib
+*.dll
+*.exe
+
 # Test binaries
 ipv6-test
 ipv6-test-*
+ipv6-cmd
+ipv6-fuzz
 test-cov
 test-ext-cov
+test_results.md
+fuzz_results.md
 
-# Generated config
+# Generated config and headers
 ipv6_config.h
 ipv6_test_config.h
 
 # Debug symbols
 *.dSYM/
 
-# Coverage build directory
-build_coverage/
+# Package build artifacts
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+_CPack_Packages/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+# pkg-config generated file (but not .pc.in templates)
+ipv6-parse.pc

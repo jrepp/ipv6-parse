@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IPv6 Parser Diagnostic</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #000; color: #0f0; }
+        pre { background: #111; padding: 15px; border: 1px solid #333; overflow-x: auto; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        .info { color: #0cf; }
+    </style>
+</head>
+<body>
+    <h1>IPv6 Parser Diagnostic</h1>
+    <pre id="log"></pre>
+
+    <script>
+        const log = document.getElementById('log');
+
+        function addLog(msg, type = 'info') {
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = new Date().toISOString().substr(11, 12) + ' | ' + msg;
+            log.appendChild(line);
+            console.log(msg);
+        }
+
+        async function runDiagnostic() {
+            try {
+                addLog('=== Starting Diagnostic ===', 'info');
+
+                // Step 1: Check if ipv6-parse.js exists and loads
+                addLog('Step 1: Loading ipv6-parse.js...', 'info');
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'ipv6-parse.js';
+                    script.onload = () => {
+                        addLog('✓ ipv6-parse.js loaded', 'success');
+                        resolve();
+                    };
+                    script.onerror = (err) => {
+                        addLog('✗ Failed to load ipv6-parse.js', 'error');
+                        reject(err);
+                    };
+                    document.head.appendChild(script);
+                });
+
+                // Step 2: Check if createIPv6Module function exists
+                addLog('Step 2: Checking for createIPv6Module function...', 'info');
+                if (typeof createIPv6Module === 'undefined') {
+                    throw new Error('createIPv6Module is not defined');
+                }
+                addLog('✓ createIPv6Module function exists', 'success');
+
+                // Step 3: Create WASM module
+                addLog('Step 3: Creating WASM module...', 'info');
+                const wasmModule = await createIPv6Module();
+                addLog('✓ WASM module created', 'success');
+
+                // Step 4: Check module properties
+                addLog('Step 4: Checking module properties...', 'info');
+                addLog(`  - Type: ${typeof wasmModule}`, 'info');
+                addLog(`  - Has ccall: ${typeof wasmModule.ccall}`, 'info');
+                addLog(`  - Has cwrap: ${typeof wasmModule.cwrap}`, 'info');
+                addLog(`  - Has _malloc: ${typeof wasmModule._malloc}`, 'info');
+                addLog(`  - Has _free: ${typeof wasmModule._free}`, 'info');
+                addLog(`  - Has UTF8ToString: ${typeof wasmModule.UTF8ToString}`, 'info');
+                addLog(`  - Has HEAPU8: ${typeof wasmModule.HEAPU8}`, 'info');
+                addLog(`  - Has HEAPU16: ${typeof wasmModule.HEAPU16}`, 'info');
+                addLog(`  - Has HEAPU32: ${typeof wasmModule.HEAPU32}`, 'info');
+
+                if (!wasmModule.HEAPU8) {
+                    addLog('⚠ HEAPU8 not available yet, waiting...', 'info');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    addLog(`  - Has HEAPU8 after wait: ${typeof wasmModule.HEAPU8}`, 'info');
+                    addLog(`  - Has HEAPU16 after wait: ${typeof wasmModule.HEAPU16}`, 'info');
+                    addLog(`  - Has HEAPU32 after wait: ${typeof wasmModule.HEAPU32}`, 'info');
+                }
+
+                // Step 5: Load API layer
+                addLog('Step 5: Loading ipv6-parse-api.js...', 'info');
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'ipv6-parse-api.js';
+                    script.onload = () => {
+                        addLog('✓ ipv6-parse-api.js loaded', 'success');
+                        resolve();
+                    };
+                    script.onerror = (err) => {
+                        addLog('✗ Failed to load ipv6-parse-api.js', 'error');
+                        reject(err);
+                    };
+                    document.head.appendChild(script);
+                });
+
+                // Step 6: Check for IPv6Parser class
+                addLog('Step 6: Checking for IPv6Parser class...', 'info');
+                if (typeof IPv6Parser === 'undefined') {
+                    throw new Error('IPv6Parser is not defined');
+                }
+                addLog('✓ IPv6Parser class exists', 'success');
+
+                // Step 7: Create parser instance
+                addLog('Step 7: Creating parser instance...', 'info');
+                const parser = new IPv6Parser(wasmModule);
+                addLog('✓ Parser instance created', 'success');
+
+                // Step 8: Get version
+                addLog('Step 8: Getting version...', 'info');
+                const version = parser.getVersion();
+                addLog(`✓ Version: ${version}`, 'success');
+
+                // Step 9: Test parsing
+                addLog('Step 9: Testing parse function...', 'info');
+                const testAddr = '2001:db8::1';
+                addLog(`  Parsing: ${testAddr}`, 'info');
+                const result = parser.parse(testAddr);
+                addLog(`✓ Parse successful!`, 'success');
+                addLog(`  - Formatted: ${result.formatted}`, 'success');
+                addLog(`  - Components: [${result.components.map(c => '0x' + c.toString(16).padStart(4, '0')).join(', ')}]`, 'success');
+                addLog(`  - Port: ${result.port}`, 'success');
+                addLog(`  - CIDR: ${result.mask}`, 'success');
+
+                addLog('', 'info');
+                addLog('=== ALL TESTS PASSED! ===', 'success');
+                addLog('The parser is working correctly!', 'success');
+
+            } catch (err) {
+                addLog('', 'error');
+                addLog('=== ERROR ===', 'error');
+                addLog(`Error: ${err.message}`, 'error');
+                addLog(`Stack: ${err.stack}`, 'error');
+            }
+        }
+
+        // Start diagnostic
+        runDiagnostic();
+    </script>
+</body>
+</html>

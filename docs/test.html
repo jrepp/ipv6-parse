@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IPv6 Parser Test (No Cache)</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .test { margin: 10px 0; padding: 10px; background: #2d2d2d; border-radius: 4px; }
+        .pass { border-left: 4px solid #4caf50; }
+        .fail { border-left: 4px solid #f44336; }
+        input { padding: 8px; width: 300px; font-family: monospace; }
+        button { padding: 8px 16px; margin-left: 10px; cursor: pointer; }
+        #output { margin-top: 20px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>IPv6 Parser Test (Cache-Busted)</h1>
+
+    <div>
+        <input type="text" id="addr" value="2001:db8::1" placeholder="Enter address">
+        <button onclick="testParse()">Parse</button>
+    </div>
+
+    <div id="output"></div>
+    <div id="tests"></div>
+
+    <script>
+        // Cache-busting: add timestamp to force fresh load
+        const timestamp = new Date().getTime();
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src + '?t=' + timestamp;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function init() {
+            try {
+                document.getElementById('output').textContent = 'Loading WASM module...\n';
+
+                // Load scripts with cache busting
+                await loadScript('ipv6-parse.js');
+                document.getElementById('output').textContent += '✓ Loaded ipv6-parse.js\n';
+
+                await loadScript('ipv6-parse-api.js');
+                document.getElementById('output').textContent += '✓ Loaded ipv6-parse-api.js\n';
+
+                // Initialize WASM module
+                const wasmModule = await createIPv6Module();
+                document.getElementById('output').textContent += '✓ WASM module created\n';
+
+                // Check heap arrays
+                if (!wasmModule.HEAPU8 || !wasmModule.HEAPU16 || !wasmModule.HEAPU32) {
+                    throw new Error('WASM heap arrays not initialized');
+                }
+                document.getElementById('output').textContent += '✓ Heap arrays available\n';
+
+                // Create parser
+                window.parser = new IPv6Parser(wasmModule);
+                document.getElementById('output').textContent += '✓ Parser created\n';
+
+                const version = parser.getVersion();
+                document.getElementById('output').textContent += `✓ Version: ${version}\n\n`;
+
+                // Run auto tests
+                runTests();
+
+            } catch (err) {
+                document.getElementById('output').textContent += '✗ Error: ' + err.message + '\n';
+                document.getElementById('output').textContent += err.stack + '\n';
+            }
+        }
+
+        function testParse() {
+            const addr = document.getElementById('addr').value;
+            const output = document.getElementById('output');
+
+            try {
+                output.textContent = `Parsing: ${addr}\n\n`;
+
+                const result = parser.parse(addr);
+
+                output.textContent += `✓ Parse successful!\n\n`;
+                output.textContent += `Formatted: ${result.formatted}\n`;
+                output.textContent += `Components: [${result.components.map(c => '0x' + c.toString(16).padStart(4, '0')).join(', ')}]\n`;
+                output.textContent += `Port: ${result.port}\n`;
+                output.textContent += `CIDR: ${result.mask}\n`;
+                output.textContent += `Zone: ${result.zone}\n`;
+                output.textContent += `Has Port: ${result.hasPort}\n`;
+                output.textContent += `Has Mask: ${result.hasMask}\n`;
+                output.textContent += `IPv4 Embedded: ${result.isIPv4Embedded}\n`;
+
+            } catch (err) {
+                output.textContent += `✗ Parse failed: ${err.message}\n`;
+                output.textContent += err.stack;
+            }
+        }
+
+        function runTests() {
+            const tests = [
+                { addr: '::1', name: 'Loopback' },
+                { addr: '2001:db8::1', name: 'Basic IPv6' },
+                { addr: '[::1]:8080', name: 'With port' },
+                { addr: 'fe80::1%eth0', name: 'With zone' },
+                { addr: '2001:db8::1/64', name: 'With CIDR' },
+                { addr: '::ffff:192.0.2.1', name: 'IPv4-mapped' }
+            ];
+
+            const testsDiv = document.getElementById('tests');
+            testsDiv.innerHTML = '<h2>Auto Tests</h2>';
+
+            tests.forEach(test => {
+                const div = document.createElement('div');
+                try {
+                    const result = parser.parse(test.addr);
+                    div.className = 'test pass';
+                    div.innerHTML = `✓ ${test.name}: <code>${test.addr}</code> → <code>${result.formatted}</code>`;
+                } catch (err) {
+                    div.className = 'test fail';
+                    div.innerHTML = `✗ ${test.name}: <code>${test.addr}</code> → Error: ${err.message}`;
+                }
+                testsDiv.appendChild(div);
+            });
+        }
+
+        // Start initialization
+        init();
+    </script>
+</body>
+</html>

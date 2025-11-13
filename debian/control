@@ -1,0 +1,33 @@
+Source: ipv6-parse
+Section: libs
+Priority: optional
+Maintainer: Jacob Repp <jacobrepp@gmail.com>
+Build-Depends: debhelper-compat (= 13), cmake (>= 3.12)
+Standards-Version: 4.6.0
+Homepage: https://github.com/jrepp/ipv6-parse
+Vcs-Git: https://github.com/jrepp/ipv6-parse.git
+Vcs-Browser: https://github.com/jrepp/ipv6-parse
+
+Package: libipv6-parse1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IPv6/IPv4 address parser library
+ High-performance IPv6/IPv4 address parser with full RFC compliance
+ (RFC 4291, RFC 5952, RFC 4007).
+ .
+ Features:
+  - Full RFC compliance for IPv6 and IPv4 address parsing
+  - Support for CIDR masks, ports, and zone IDs
+  - IPv4-mapped and IPv4-compatible address handling
+  - High-performance C implementation
+  - Zero dependencies
+
+Package: libipv6-parse-dev
+Architecture: any
+Section: libdevel
+Depends: libipv6-parse1 (= ${binary:Version}), ${misc:Depends}
+Description: Development files for IPv6/IPv4 address parser
+ This package contains the development files (headers and static library)
+ for libipv6-parse, a high-performance IPv6/IPv4 address parser.
+ .
+ Install this package if you want to develop applications using libipv6-parse.

@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPv6 Address Parser - Test & Decode</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 12px;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            font-size: 1.15em;
+            opacity: 0.95;
+            font-weight: 400;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow:
+                0 20px 60px rgba(0,0,0,0.15),
+                0 0 0 1px rgba(255,255,255,0.5) inset;
+            margin-bottom: 25px;
+            animation: fadeInUp 0.8s ease 0.2s both;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 25px 70px rgba(0,0,0,0.2),
+                0 0 0 1px rgba(255,255,255,0.6) inset;
+        }
+
+        .input-section {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #444;
+            font-size: 0.95em;
+            letter-spacing: 0.3px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 16px 18px;
+            font-size: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #fafafa;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        input[type="text"]:hover {
+            border-color: #d1d5db;
+            background: #fff;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow:
+                0 0 0 4px rgba(102, 126, 234, 0.1),
+                0 4px 12px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .example-btn {
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1.5px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            color: #495057;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        .example-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .example-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.2);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status {
+            padding: 18px 22px;
+            border-radius: 14px;
+            margin: 24px 0;
+            font-weight: 500;
+            display: none;
+            animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .status.success {
+            background: linear-gradient(135deg, #d1f4e0 0%, #e8f8f0 100%);
+            color: #0d5c2d;
+            border: 2px solid #a3e6c6;
+            display: block;
+            box-shadow:
+                0 4px 12px rgba(13, 92, 45, 0.1),
+                0 0 0 1px rgba(163, 230, 198, 0.3) inset;
+        }
+
+        .status.success::before {
+            content: '✓ ';
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .status.error {
+            background: linear-gradient(135deg, #ffe5e8 0%, #fff0f2 100%);
+            color: #a91429;
+            border: 2px solid #ffc4cd;
+            display: block;
+            box-shadow:
+                0 6px 20px rgba(169, 20, 41, 0.15),
+                0 0 0 1px rgba(255, 196, 205, 0.4) inset;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status.error::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 18px;
+            margin-top: 24px;
+        }
+
+        .result-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            padding: 18px 20px;
+            border-radius: 12px;
+            border-left: 4px solid transparent;
+            border-image: linear-gradient(180deg, #667eea, #764ba2) 1;
+            box-shadow:
+                0 2px 8px rgba(0,0,0,0.04),
+                0 0 0 1px rgba(0,0,0,0.04);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(118, 75, 162, 0.03) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .result-item:hover::before {
+            opacity: 1;
+        }
+
+        .result-item:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 8px 16px rgba(0,0,0,0.08),
+                0 0 0 1px rgba(102, 126, 234, 0.1);
+        }
+
+        .result-item h3 {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+        }
+
+        .result-item .value {
+            font-size: 1.25em;
+            font-weight: 600;
+            color: #1f2937;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            word-break: break-all;
+            position: relative;
+            z-index: 1;
+        }
+
+        .components {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .component {
+            background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
+            padding: 14px 10px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .component:hover {
+            border-color: #667eea;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+        }
+
+        .component .label {
+            font-size: 0.7em;
+            color: #9ca3af;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .component .hex {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.15em;
+        }
+
+        .flags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .flag {
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 24px;
+            font-size: 0.85em;
+            font-weight: 600;
+            box-shadow:
+                0 4px 12px rgba(102, 126, 234, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.3px;
+        }
+
+        .flag:not(.disabled) {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .flag.disabled {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            color: #adb5bd;
+            box-shadow:
+                0 2px 4px rgba(0,0,0,0.06),
+                0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+            animation: none;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.3em;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .loading::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(102, 126, 234, 0.2);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.95);
+            margin-top: 40px;
+            font-size: 0.95em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+            transition: border-color 0.3s ease;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            border-bottom-color: white;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 4px;
+            background: #f3f4f6;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04) inset;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 14px;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #6b7280;
+            position: relative;
+        }
+
+        .mode-btn.active {
+            background: white;
+            color: #667eea;
+            box-shadow:
+                0 4px 12px rgba(102, 126, 234, 0.15),
+                0 2px 4px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.5);
+            color: #4b5563;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 16px 18px;
+            font-size: 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            resize: vertical;
+            min-height: 200px;
+            background: #fafafa;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            line-height: 1.6;
+        }
+
+        textarea:hover {
+            border-color: #d1d5db;
+            background: #fff;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow:
+                0 0 0 4px rgba(102, 126, 234, 0.1),
+                0 4px 12px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
+        }
+
+        .batch-results {
+            margin-top: 24px;
+        }
+
+        .batch-item {
+            background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+            padding: 24px;
+            border-radius: 14px;
+            margin-bottom: 18px;
+            border-left: 4px solid transparent;
+            border-image: linear-gradient(180deg, #667eea, #764ba2) 1;
+            box-shadow:
+                0 4px 12px rgba(0,0,0,0.06),
+                0 0 0 1px rgba(0,0,0,0.04);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideIn 0.4s ease;
+        }
+
+        .batch-item:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 8px 20px rgba(0,0,0,0.1),
+                0 0 0 1px rgba(102, 126, 234, 0.1);
+        }
+
+        .batch-item.error {
+            border-image: linear-gradient(180deg, #dc3545, #c82333) 1;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+        }
+
+        .batch-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .batch-item-input {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-weight: 600;
+            font-size: 1.05em;
+            color: #1f2937;
+        }
+
+        .batch-status {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        .batch-status.success {
+            background: linear-gradient(135deg, #d1f4e0 0%, #a3e6c6 100%);
+            color: #0d5c2d;
+        }
+
+        .batch-status.error {
+            background: linear-gradient(135deg, #ffe5e8 0%, #ffc4cd 100%);
+            color: #a91429;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .parse-btn {
+            flex: 1;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow:
+                0 4px 12px rgba(102, 126, 234, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+            letter-spacing: 0.3px;
+        }
+
+        .parse-btn:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 8px 20px rgba(102, 126, 234, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+        }
+
+        .parse-btn:active {
+            transform: translateY(0);
+            box-shadow:
+                0 4px 12px rgba(102, 126, 234, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+        }
+
+        .secondary-btn {
+            flex: 0 0 auto;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+            letter-spacing: 0.3px;
+        }
+
+        .secondary-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow:
+                0 6px 16px rgba(102, 126, 234, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+        }
+
+        .secondary-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            header h1 {
+                font-size: 2.2em;
+            }
+
+            .card {
+                padding: 25px;
+                border-radius: 16px;
+            }
+
+            .components {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mode-toggle {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .flags {
+                gap: 8px;
+            }
+
+            .flag {
+                padding: 8px 14px;
+                font-size: 0.8em;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .secondary-btn {
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .components {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 IPv6 Address Parser</h1>
+            <p>Test & decode IPv6/IPv4 addresses with full RFC compliance</p>
+        </header>
+
+        <div class="card">
+            <div class="loading" id="loading">
+                Loading WebAssembly module...
+            </div>
+
+            <div id="app" style="display: none;">
+                <!-- Mode Toggle -->
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="single-mode-btn">Single Address</button>
+                    <button class="mode-btn" id="batch-mode-btn">Batch Mode</button>
+                </div>
+
+                <!-- Single Address Mode -->
+                <div id="single-mode">
+                    <div class="input-section">
+                        <label for="address-input">Enter IPv6 or IPv4 Address:</label>
+                        <input
+                            type="text"
+                            id="address-input"
+                            placeholder="e.g., 2001:db8::1, ::ffff:192.0.2.1, [::1]:8080"
+                            autofocus
+                        />
+                        <div class="examples">
+                            <button class="example-btn" data-addr="2001:db8::1">2001:db8::1</button>
+                            <button class="example-btn" data-addr="::1">::1</button>
+                            <button class="example-btn" data-addr="::">::</button>
+                            <button class="example-btn" data-addr="[::1]:8080">[::1]:8080</button>
+                            <button class="example-btn" data-addr="fe80::1%eth0">fe80::1%eth0</button>
+                            <button class="example-btn" data-addr="::ffff:192.0.2.1">::ffff:192.0.2.1</button>
+                            <button class="example-btn" data-addr="2001:db8::1/64">2001:db8::1/64</button>
+                            <button class="example-btn" data-addr="ff02::1">ff02::1</button>
+                            <button class="example-btn" data-addr="::ffff:0:192.0.2.1">::ffff:0:192.0.2.1</button>
+                            <button class="example-btn" data-addr="2001:db8:85a3::8a2e:370:7334">2001:db8:85a3::8a2e:370:7334</button>
+                            <button class="example-btn" data-addr="[fe80::1%lo0]:443">[fe80::1%lo0]:443</button>
+                            <button class="example-btn" data-addr="[2001:db8::1/64%eth0]:443">[2001:db8::1/64%eth0]:443</button>
+                            <button class="example-btn" data-addr="::1/128">::1/128</button>
+                            <button class="example-btn" data-addr="2001:db8::/32">2001:db8::/32</button>
+                            <button class="example-btn" data-addr="fe80::/10">fe80::/10</button>
+                        </div>
+                    </div>
+
+                    <div id="status" class="status"></div>
+
+                    <div id="results" class="results">
+                        <h2 style="margin-bottom: 20px;">Parsed Results</h2>
+
+                        <div class="result-item" style="grid-column: 1/-1;">
+                            <h3>Formatted Address</h3>
+                            <div class="value" id="formatted"></div>
+                        </div>
+
+                        <!-- Flags moved higher in hierarchy -->
+                        <div style="margin-top: 20px;">
+                            <h3 style="margin-bottom: 15px;">Address Flags</h3>
+                            <div class="flags">
+                                <div class="flag" id="flag-port">Has Port</div>
+                                <div class="flag" id="flag-mask">Has CIDR Mask</div>
+                                <div class="flag" id="flag-ipv4-embed">IPv4 Embedded</div>
+                                <div class="flag" id="flag-ipv4-compat">IPv4 Compatible</div>
+                            </div>
+                        </div>
+
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <h3>Port</h3>
+                                <div class="value" id="port">-</div>
+                            </div>
+
+                            <div class="result-item">
+                                <h3>CIDR Mask</h3>
+                                <div class="value" id="mask">-</div>
+                            </div>
+
+                            <div class="result-item">
+                                <h3>Zone ID</h3>
+                                <div class="value" id="zone">-</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 30px;">
+                            <h3 style="margin-bottom: 15px;">Address Components (Hexadecimal)</h3>
+                            <div class="components" id="components"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batch Mode -->
+                <div id="batch-mode" class="hidden">
+                    <div class="input-section">
+                        <label for="batch-input">Enter Multiple Addresses (one per line):</label>
+                        <textarea
+                            id="batch-input"
+                            placeholder="Enter addresses, one per line:
+2001:db8::1
+::1
+[::1]:8080
+fe80::1%eth0
+::ffff:192.0.2.1
+2001:db8::1/64"
+                        ></textarea>
+                        <div class="button-group">
+                            <button class="secondary-btn" id="load-test-set-btn">Load Test Set</button>
+                            <button class="parse-btn" id="parse-batch-btn">Parse All Addresses</button>
+                        </div>
+                    </div>
+
+                    <div id="batch-results" class="batch-results"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>
+                Powered by <a href="https://github.com/jrepp/ipv6-parse" target="_blank">ipv6-parse</a>
+                compiled to WebAssembly | MIT License
+            </p>
+        </div>
+    </div>
+
+    <script src="ipv6-parse.js"></script>
+    <script src="ipv6-parse-api.js"></script>
+    <script>
+        let parser;
+
+        // Comprehensive test set from repository test.c
+        const TEST_ADDRESSES = [
+            // Basic IPv6 formats
+            "::1:2:3:4:5",
+            "0:0:0:1:2:3:4:5",
+            "1:2::3:4:5",
+            "1:2:0:0:0:3:4:5",
+            "1:2:3:4:5::",
+            "1:2:3:4:5:0:0:0",
+            "::",
+            "::0",
+            "::1",
+            "0:0:0::1",
+            "ffff::1",
+            "ffff:0:0:0:0:0:0:1",
+            "2001:0db8:0a0b:12f0:0:0:0:1",
+            "2001:db8:a0b:12f0::1",
+
+            // IPv4 embedded in IPv6
+            "::ffff:1.2.3.4",
+            "::ffff:192.0.2.1",
+            "0:0:0:0:0:ffff:102:405",
+
+            // With CIDR masks
+            "::ffff:1.2.3.4/32",
+            "1:2:3:4:5:0:0:0/128",
+            "2001:db8::/32",
+            "fe80::/10",
+            "::1/128",
+
+            // With ports
+            "[::1]:5678",
+            "[::ffff:1.2.3.4/32]:5678",
+            "[1:2:3:4:5:0:0:0/128]:5678",
+            "[1:2:3:4:5::]:5678",
+            "[::1]:8080",
+            "[::1]:443",
+            "[fe80::1%lo0]:443",
+            "[2001:db8::1/64%eth0]:443",
+
+            // IPv4 formats
+            "1.2.3.4",
+            "1.2.3.4:5678",
+            "127.0.0.1",
+            "255.255.255.255",
+            "255.255.255.255:65123",
+            "192.168.1.1",
+            "10.0.0.1",
+
+            // IPv4 shorthand
+            "1",
+            "1:5678",
+            "1.2",
+            "1.2:5678",
+            "1.2.3",
+            "1.2.3:5678",
+
+            // With zone IDs
+            "fe80::1%eth0",
+            "fe80::1%lo0",
+            "fe80::1%en0",
+
+            // Complex combinations
+            "[::ffff:192.0.2.1]:8080",
+            "2001:db8:85a3::8a2e:370:7334",
+            "ff02::1",
+            "::ffff:0:192.0.2.1"
+        ];
+
+        // Initialize the WASM module with clean API
+        createIPv6Module().then(wasmModule => {
+            // Wait for WASM to be fully ready
+            return new Promise((resolve) => {
+                if (wasmModule.HEAPU8 && wasmModule.HEAPU16 && wasmModule.HEAPU32) {
+                    resolve(wasmModule);
+                } else {
+                    // Wait a bit for initialization
+                    setTimeout(() => resolve(wasmModule), 100);
+                }
+            });
+        }).then(wasmModule => {
+            // Create parser instance with clean JavaScript API
+            parser = new IPv6Parser(wasmModule);
+
+            // Show UI
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+
+            // Set up mode toggle
+            setupModeToggle();
+
+            // Set up single mode event listeners
+            const input = document.getElementById('address-input');
+            input.addEventListener('input', parseAddress);
+            input.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') parseAddress();
+            });
+
+            // Example buttons
+            document.querySelectorAll('.example-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    input.value = btn.dataset.addr;
+                    parseAddress();
+                });
+            });
+
+            // Batch mode buttons
+            document.getElementById('parse-batch-btn').addEventListener('click', parseBatch);
+            document.getElementById('load-test-set-btn').addEventListener('click', loadTestSet);
+
+            console.log('IPv6 Parser ready! Version:', parser.getVersion());
+        }).catch(err => {
+            document.getElementById('loading').textContent = 'Error loading WASM module: ' + err;
+            console.error('Failed to load WASM:', err);
+        });
+
+        /**
+         * Setup mode toggle between single and batch mode
+         */
+        function setupModeToggle() {
+            const singleModeBtn = document.getElementById('single-mode-btn');
+            const batchModeBtn = document.getElementById('batch-mode-btn');
+            const singleMode = document.getElementById('single-mode');
+            const batchMode = document.getElementById('batch-mode');
+
+            singleModeBtn.addEventListener('click', () => {
+                singleModeBtn.classList.add('active');
+                batchModeBtn.classList.remove('active');
+                singleMode.classList.remove('hidden');
+                batchMode.classList.add('hidden');
+            });
+
+            batchModeBtn.addEventListener('click', () => {
+                batchModeBtn.classList.add('active');
+                singleModeBtn.classList.remove('active');
+                batchMode.classList.remove('hidden');
+                singleMode.classList.add('hidden');
+            });
+        }
+
+        /**
+         * Unified helper to create diagnostic output HTML for an address
+         */
+        function createAddressDiagnostics(addr) {
+            // Create flags HTML
+            const flags = `
+                <div class="flags">
+                    <div class="flag ${addr.hasPort ? '' : 'disabled'}">Has Port</div>
+                    <div class="flag ${addr.hasMask ? '' : 'disabled'}">Has CIDR Mask</div>
+                    <div class="flag ${addr.isIPv4Embedded ? '' : 'disabled'}">IPv4 Embedded</div>
+                    <div class="flag ${addr.isIPv4Compatible ? '' : 'disabled'}">IPv4 Compatible</div>
+                </div>
+            `;
+
+            // Create metadata HTML
+            const metadata = `
+                <div class="result-grid">
+                    <div class="result-item">
+                        <h3>Port</h3>
+                        <div class="value">${addr.port !== null ? addr.port : '-'}</div>
+                    </div>
+                    <div class="result-item">
+                        <h3>CIDR Mask</h3>
+                        <div class="value">${addr.mask !== null ? `/${addr.mask}` : '-'}</div>
+                    </div>
+                    <div class="result-item">
+                        <h3>Zone ID</h3>
+                        <div class="value">${addr.zone || '-'}</div>
+                    </div>
+                </div>
+            `;
+
+            // Create components HTML
+            const componentsHTML = addr.components.map((component, i) => `
+                <div class="component">
+                    <div class="label">[${i}]</div>
+                    <div class="hex">0x${addr.getComponentHex(i)}</div>
+                </div>
+            `).join('');
+
+            return { flags, metadata, componentsHTML };
+        }
+
+        /**
+         * Parse and display address in single mode
+         */
+        function parseAddress() {
+            const input = document.getElementById('address-input').value.trim();
+            const status = document.getElementById('status');
+            const results = document.getElementById('results');
+
+            // Clear state if no input
+            if (!input) {
+                status.className = 'status';
+                results.classList.remove('show');
+                return;
+            }
+
+            try {
+                // Single call to parse - gets all data at once!
+                const addr = parser.parse(input);
+
+                // Success - show results
+                status.className = 'status success';
+                status.textContent = '✓ Address parsed successfully';
+                results.classList.add('show');
+
+                // Display formatted address
+                document.getElementById('formatted').textContent = addr.formatted;
+
+                // Use unified diagnostic helper
+                const diagnostics = createAddressDiagnostics(addr);
+
+                // Update flags (higher in hierarchy now)
+                const flagsContainer = results.querySelector('.flags');
+                flagsContainer.innerHTML = diagnostics.flags.match(/<div class="flag.*?<\/div>/g).join('');
+
+                // Display metadata
+                document.getElementById('port').textContent = addr.port !== null ? addr.port : '-';
+                document.getElementById('mask').textContent = addr.mask !== null ? `/${addr.mask}` : '-';
+                document.getElementById('zone').textContent = addr.zone || '-';
+
+                // Display components
+                const componentsDiv = document.getElementById('components');
+                componentsDiv.innerHTML = diagnostics.componentsHTML;
+
+            } catch (err) {
+                // Handle parse errors gracefully with diagnostic output
+                status.className = 'status error';
+                if (err instanceof IPv6ParseError) {
+                    // Display detailed diagnostic information
+                    if (err.diagnostic && err.diagnostic.message) {
+                        let errorHtml = `<strong>❌ ${err.message}</strong><br>`;
+                        errorHtml += `<div style="margin-top: 10px; font-family: 'Courier New', monospace;">`;
+                        errorHtml += `Input: "${err.input}"<br>`;
+                        if (err.position !== undefined) {
+                            errorHtml += `Error at position ${err.position}:<br>`;
+                            // Show input with proper monospace alignment
+                            errorHtml += '<div style="line-height: 1.8; white-space: pre; font-family: monospace;">';
+                            // Line 1: Input with highlighted error character
+                            errorHtml += '<span style="color: #666;">' + err.input.substring(0, err.position) + '</span>';
+                            if (err.position < err.input.length) {
+                                errorHtml += '<span style="color: #fff; background: #dc3545; font-weight: bold;">' + err.input.charAt(err.position) + '</span>';
+                                errorHtml += '<span style="color: #666;">' + err.input.substring(err.position + 1) + '</span>';
+                            }
+                            errorHtml += '\n';
+                            // Line 2: Pointer directly under the error character
+                            errorHtml += '<span style="color: #dc3545; font-weight: bold;">' + ' '.repeat(err.position) + '▲</span>';
+                            errorHtml += '</div>';
+                        }
+                        errorHtml += `</div>`;
+                        status.innerHTML = errorHtml;
+                    } else {
+                        status.textContent = `❌ ${err.message}`;
+                    }
+                } else {
+                    status.textContent = '❌ Unexpected error: ' + err.message;
+                    console.error('Parse error:', err);
+                }
+                results.classList.remove('show');
+            }
+        }
+
+        /**
+         * Load comprehensive test set into batch input
+         */
+        function loadTestSet() {
+            const batchInput = document.getElementById('batch-input');
+            batchInput.value = TEST_ADDRESSES.join('\n');
+
+            // Clear any previous results
+            const resultsContainer = document.getElementById('batch-results');
+            resultsContainer.innerHTML = '';
+
+            // Focus the textarea
+            batchInput.focus();
+
+            // Scroll to show the loaded content
+            batchInput.scrollTop = 0;
+        }
+
+        /**
+         * Parse and display multiple addresses in batch mode
+         */
+        function parseBatch() {
+            const input = document.getElementById('batch-input').value.trim();
+            const resultsContainer = document.getElementById('batch-results');
+
+            if (!input) {
+                resultsContainer.innerHTML = '<div class="status error">❌ Please enter at least one address</div>';
+                return;
+            }
+
+            // Split by newlines and filter out empty lines
+            const addresses = input.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (addresses.length === 0) {
+                resultsContainer.innerHTML = '<div class="status error">❌ No valid addresses found</div>';
+                return;
+            }
+
+            // Parse all addresses
+            const results = addresses.map(addr => {
+                try {
+                    const parsed = parser.parse(addr);
+                    return { input: addr, success: true, data: parsed };
+                } catch (err) {
+                    return { input: addr, success: false, error: err };
+                }
+            });
+
+            // Display results using unified helper
+            const successCount = results.filter(r => r.success).length;
+            const html = `
+                <div class="status ${successCount === addresses.length ? 'success' : 'error'}" style="display: block;">
+                    Parsed ${successCount} of ${addresses.length} addresses
+                    ${successCount < addresses.length ? `(${addresses.length - successCount} failed)` : ''}
+                </div>
+                ${results.map((result, idx) => {
+                    if (result.success) {
+                        const diag = createAddressDiagnostics(result.data);
+                        return `
+                            <div class="batch-item">
+                                <div class="batch-item-header">
+                                    <div class="batch-item-input">${result.input}</div>
+                                    <div class="batch-status success">✓ Valid</div>
+                                </div>
+                                <div class="result-item" style="margin-bottom: 15px;">
+                                    <h3>Formatted Address</h3>
+                                    <div class="value">${result.data.formatted}</div>
+                                </div>
+                                <div style="margin-bottom: 15px;">
+                                    <h3 style="margin-bottom: 10px; font-size: 0.9em; color: #666;">Flags</h3>
+                                    ${diag.flags}
+                                </div>
+                                ${diag.metadata}
+                                <div style="margin-top: 20px;">
+                                    <h3 style="margin-bottom: 10px; font-size: 0.9em; color: #666;">Components</h3>
+                                    <div class="components">${diag.componentsHTML}</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // Show diagnostic information for failed parses
+                        let errorDetails = result.error.message || 'Parse error';
+                        if (result.error.diagnostic && result.error.diagnostic.message) {
+                            errorDetails = result.error.diagnostic.message;
+                            if (result.error.position !== undefined) {
+                                errorDetails += '<br><div style="font-family: monospace; margin-top: 8px; line-height: 1.8; white-space: pre;">';
+                                // Show input with highlighted error character
+                                errorDetails += '<span style="color: #666;">' + result.input.substring(0, result.error.position) + '</span>';
+                                if (result.error.position < result.input.length) {
+                                    errorDetails += '<span style="color: #fff; background: #dc3545; font-weight: bold;">' + result.input.charAt(result.error.position) + '</span>';
+                                    errorDetails += '<span style="color: #666;">' + result.input.substring(result.error.position + 1) + '</span>';
+                                }
+                                errorDetails += '\n';
+                                // Pointer line underneath
+                                errorDetails += '<span style="color: #dc3545; font-weight: bold;">' + ' '.repeat(result.error.position) + '▲</span>';
+                                errorDetails += '</div>';
+                            }
+                        }
+                        return `
+                            <div class="batch-item error">
+                                <div class="batch-item-header">
+                                    <div class="batch-item-input">${result.input}</div>
+                                    <div class="batch-status error">✗ Invalid</div>
+                                </div>
+                                <div class="status error" style="margin: 0; display: block;">
+                                    ${errorDetails}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('')}
+            `;
+
+            resultsContainer.innerHTML = html;
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (parser) {
+                parser.destroy();
+            }
+        });
+    </script>
+</body>
+</html>

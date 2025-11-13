@@ -1,0 +1,69 @@
+# Build directories
+build/
+build_wasm/
+build_test/
+bin/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# Source files (ship only WASM)
+*.c
+!ipv6.c
+!ipv6_wasm.c
+*.h
+!ipv6.h
+cmdline.c
+test.c
+test_all.c
+test_extended.c
+fuzz.c
+
+# CMake files
+CMakeLists.txt
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!cmake/emscripten.cmake
+
+# Git files
+.git/
+.gitignore
+.github/
+
+# Documentation (except main README and WASM docs)
+TECHNICAL_REVIEW_WASM_API.md
+WASM_IMPLEMENTATION_SUMMARY.md
+ROADMAP_RELEASES.md
+PR_STAGING_PLAN.md
+QUICK_START_STAGED_PRS.md
+docs/README.md
+docs/index.html
+
+# Scripts
+stage_prs.sh
+build_wasm.sh
+
+# Test files
+test/
+
+# Coverage
+*.gcda
+*.gcno
+*.gcov
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
