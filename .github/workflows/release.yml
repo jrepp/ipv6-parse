@@ -25,13 +25,13 @@ jobs:
       matrix:
         include:
           # Linux builds
-          - os: ubuntu-20.04
-            compiler: gcc
-            build_type: Release
           - os: ubuntu-22.04
             compiler: gcc
             build_type: Release
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
+            compiler: gcc
+            build_type: Release
+          - os: ubuntu-24.04
             compiler: clang
             build_type: Release
 

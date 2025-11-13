@@ -165,7 +165,7 @@ Implements automated release pipeline using GitHub Actions that:
    - Manual workflow dispatch
 
 2. **Build matrix**:
-   - **Linux**: Ubuntu 20.04, 22.04 (gcc, clang)
+   - **Linux**: Ubuntu 22.04, 24.04 (gcc, clang)
    - **macOS**: Latest (AppleClang)
    - **Windows**: Latest (MSVC)
    - **WASM**: Emscripten latest
