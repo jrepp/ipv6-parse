@@ -63,11 +63,7 @@ jobs:
           fi
 
       - name: Configure CMake
-        run: |
-          cmake -B build \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DBUILD_SHARED_LIBS=ON \
-            -DENABLE_COVERAGE=OFF
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_SHARED_LIBS=ON -DENABLE_COVERAGE=OFF
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }}
