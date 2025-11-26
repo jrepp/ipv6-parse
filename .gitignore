@@ -66,3 +66,7 @@ install_manifest.txt
 
 # pkg-config generated file (but not .pc.in templates)
 ipv6-parse.pc
+
+# Conan
+CMakeUserPresets.json
+test_package/build/

@@ -32,18 +32,17 @@ class Ipv6ParseConan(ConanFile):
         "cmake/*",
         "ipv6.c",
         "ipv6.h",
-        "ipv6_wasm.c",
-        "cmdline.c",
-        "LICENSE",
-        "README.md",
+        "ipv6_config.h.in",
         "ipv6-parse.pc.in",
-        "cmake/ipv6-parse-config.cmake.in",
+        "LICENSE",
+        "README.md",  # Required by CPack in CMakeLists.txt
     )
 
     def set_version(self):
         """Extract version from CMakeLists.txt"""
         content = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
-        version_match = re.search(r"project\(ipv6-parse VERSION ([0-9.]+)", content)
+        # CMakeLists.txt uses project(ipv6 VERSION x.y.z)
+        version_match = re.search(r"project\(ipv6 VERSION \"?([0-9.]+)\"?", content)
         if version_match:
             self.version = version_match.group(1)
         else:
@@ -77,29 +76,19 @@ class Ipv6ParseConan(ConanFile):
         cmake.build()
 
     def package(self):
-        cmake = CMake(self)
-        cmake.install()
-
-        # Copy license
         copy(self, "LICENSE",
              src=self.source_folder,
              dst=os.path.join(self.package_folder, "licenses"))
-
-        # Copy documentation
-        copy(self, "README*.md",
-             src=self.source_folder,
-             dst=os.path.join(self.package_folder, "docs"))
+        cmake = CMake(self)
+        cmake.install()
 
     def package_info(self):
         self.cpp_info.libs = ["ipv6-parse"]
         self.cpp_info.includedirs = ["include"]
 
-        # Set component for pkg-config
+        # Set properties for pkg-config
         self.cpp_info.set_property("pkg_config_name", "ipv6-parse")
 
-        # Set component for CMake
+        # Set properties for CMake find_package
         self.cpp_info.set_property("cmake_file_name", "ipv6-parse")
         self.cpp_info.set_property("cmake_target_name", "ipv6-parse::ipv6-parse")
-
-        # Add bin folder to PATH for CLI tool
-        self.cpp_info.bindirs = ["bin"]
