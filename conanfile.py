@@ -68,6 +68,8 @@ class Ipv6ParseConan(ConanFile):
         tc.variables["BUILD_SHARED_LIBS"] = self.options.shared
         tc.variables["ENABLE_COVERAGE"] = False
         tc.variables["PARSE_TRACE"] = False
+        # Let Conan control MSVC runtime settings
+        tc.variables["IPV6_CONAN_BUILD"] = True
         tc.generate()
 
     def build(self):
