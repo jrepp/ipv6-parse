@@ -273,3 +273,57 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  publish-conan:
+    name: Publish to Conan
+    needs: [build-matrix, create-release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      matrix:
+        include:
+          - os: Linux
+            arch: x86_64
+          - os: Linux
+            arch: armv8
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Conan
+        run: |
+          pip install conan
+          conan profile detect --force
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Conan package
+        run: |
+          conan create . --build=missing
+
+      - name: Upload Conan package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: conan-package-${{ matrix.os }}-${{ matrix.arch }}
+          path: ~/.conan2/p/
+
+      # Publish to a custom Conan remote (requires CONAN_REMOTE_URL and CONAN_API_KEY secrets)
+      - name: Publish to Conan remote
+        if: ${{ vars.CONAN_REMOTE_URL != '' }}
+        env:
+          CONAN_REMOTE_URL: ${{ vars.CONAN_REMOTE_URL }}
+          CONAN_API_KEY: ${{ secrets.CONAN_API_KEY }}
+        run: |
+          conan remote add publish "$CONAN_REMOTE_URL"
+          conan remote login publish -p "$CONAN_API_KEY" ci
+          conan upload "ipv6-parse/${{ steps.version.outputs.version }}" -r publish --confirm

@@ -81,8 +81,16 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 file(GLOB ipv6_sources "ipv6.h" "ipv6.c" ${IPV6_CONFIG_HEADER_PATH}/ipv6_config.h)
 
+option(IPV6_CONAN_BUILD "Building with Conan package manager" OFF)
+
 if (MSVC)
-    set(ipv6_target_compile_flags "/MTd /Wall /WX /wd5045 /ZI /Od /D_NO_CRT_STDIO_INLINE=1")
+    if (IPV6_CONAN_BUILD)
+        # When building with Conan, use minimal flags and let Conan control runtime
+        # Disable C4711 (auto inline) and C5045 (Spectre) warnings
+        set(ipv6_target_compile_flags "/W4 /wd4711 /wd5045")
+    else ()
+        set(ipv6_target_compile_flags "/MTd /Wall /WX /wd5045 /ZI /Od /D_NO_CRT_STDIO_INLINE=1")
+    endif ()
 else ()
     set(ipv6_target_compile_flags "-Wall -Werror -Wno-long-long -pedantic -std=c99 -Wno-unused-but-set-variable")
     if (ENABLE_COVERAGE)
