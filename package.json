@@ -15,7 +15,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run lint && npm run test:security && npm run test:node && npm run test:wasm && npm run test:sync && npm run test:errors && npm run test:diagnostics",
+    "test": "npm run test:toolchain && npm run lint && npm run test:security && npm run test:node && npm run test:wasm && npm run test:sync && npm run test:errors && npm run test:diagnostics",
     "test:node": "node test/test-node.js",
     "test:wasm": "node test/test-wasm.js",
     "test:api": "node test/test-api.js",
@@ -23,6 +23,7 @@
     "test:errors": "node test/test-errors.js",
     "test:diagnostics": "node test/test-diagnostics.js",
     "test:security": "node test/test-dependency-security.js",
+    "test:toolchain": "node test/test-toolchain.js",
     "test:performance": "node test/test-performance.js",
     "bench": "node test/test-performance.js",
     "lint": "eslint index.js docs/ipv6-parse-api.js test/*.js",
