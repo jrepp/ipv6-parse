@@ -1248,49 +1248,6 @@ fe80::1%eth0
         }
 
         /**
-         * Unified helper to create diagnostic output HTML for an address
-         */
-        function createAddressDiagnostics(addr) {
-            // Create flags HTML
-            const flags = `
-                <div class="flags">
-                    <div class="flag ${addr.hasPort ? '' : 'disabled'}">Has Port</div>
-                    <div class="flag ${addr.hasMask ? '' : 'disabled'}">Has CIDR Mask</div>
-                    <div class="flag ${addr.isIPv4Embedded ? '' : 'disabled'}">IPv4 Embedded</div>
-                    <div class="flag ${addr.isIPv4Compatible ? '' : 'disabled'}">IPv4 Compatible</div>
-                </div>
-            `;
-
-            // Create metadata HTML
-            const metadata = `
-                <div class="result-grid">
-                    <div class="result-item">
-                        <h3>Port</h3>
-                        <div class="value">${addr.port !== null ? addr.port : '-'}</div>
-                    </div>
-                    <div class="result-item">
-                        <h3>CIDR Mask</h3>
-                        <div class="value">${addr.mask !== null ? `/${addr.mask}` : '-'}</div>
-                    </div>
-                    <div class="result-item">
-                        <h3>Zone ID</h3>
-                        <div class="value">${addr.zone || '-'}</div>
-                    </div>
-                </div>
-            `;
-
-            // Create components HTML
-            const componentsHTML = addr.components.map((component, i) => `
-                <div class="component">
-                    <div class="label">[${i}]</div>
-                    <div class="hex">0x${addr.getComponentHex(i)}</div>
-                </div>
-            `).join('');
-
-            return { flags, metadata, componentsHTML };
-        }
-
-        /**
          * Parse and display address in single mode
          */
         function parseAddress() {
@@ -1317,12 +1274,17 @@ fe80::1%eth0
                 // Display formatted address
                 document.getElementById('formatted').textContent = addr.formatted;
 
-                // Use unified diagnostic helper
-                const diagnostics = createAddressDiagnostics(addr);
-
                 // Update flags (higher in hierarchy now)
                 const flagsContainer = results.querySelector('.flags');
-                flagsContainer.innerHTML = diagnostics.flags.match(/<div class="flag.*?<\/div>/g).join('');
+                flagsContainer.replaceChildren();
+                [
+                    ['Has Port', addr.hasPort],
+                    ['Has CIDR Mask', addr.hasMask],
+                    ['IPv4 Embedded', addr.isIPv4Embedded],
+                    ['IPv4 Compatible', addr.isIPv4Compatible]
+                ].forEach(([label, enabled]) => {
+                    flagsContainer.appendChild(createTextElement('div', `flag${enabled ? '' : ' disabled'}`, label));
+                });
 
                 // Display metadata
                 document.getElementById('port').textContent = addr.port !== null ? addr.port : '-';
@@ -1331,7 +1293,16 @@ fe80::1%eth0
 
                 // Display components
                 const componentsDiv = document.getElementById('components');
-                componentsDiv.innerHTML = diagnostics.componentsHTML;
+                componentsDiv.replaceChildren();
+                addr.components.forEach((_, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'component';
+                    item.append(
+                        createTextElement('div', 'label', `[${index}]`),
+                        createTextElement('div', 'hex', `0x${addr.getComponentHex(index)}`)
+                    );
+                    componentsDiv.appendChild(item);
+                });
 
             } catch (err) {
                 // Handle parse errors gracefully with diagnostic output
@@ -1339,26 +1310,46 @@ fe80::1%eth0
                 if (err instanceof IPv6ParseError) {
                     // Display detailed diagnostic information
                     if (err.diagnostic && err.diagnostic.message) {
-                        let errorHtml = `<strong>❌ ${err.message}</strong><br>`;
-                        errorHtml += `<div style="margin-top: 10px; font-family: 'Courier New', monospace;">`;
-                        errorHtml += `Input: "${err.input}"<br>`;
+                        const errorHeading = document.createElement('strong');
+                        errorHeading.textContent = `❌ ${err.message}`;
+
+                        const errorDetails = document.createElement('div');
+                        errorDetails.style.cssText = "margin-top: 10px; font-family: 'Courier New', monospace;";
+                        errorDetails.append(document.createTextNode(`Input: "${err.input}"`), document.createElement('br'));
+
                         if (err.position !== undefined) {
-                            errorHtml += `Error at position ${err.position}:<br>`;
-                            // Show input with proper monospace alignment
-                            errorHtml += '<div style="line-height: 1.8; white-space: pre; font-family: monospace;">';
-                            // Line 1: Input with highlighted error character
-                            errorHtml += '<span style="color: #666;">' + err.input.substring(0, err.position) + '</span>';
+                            errorDetails.append(
+                                document.createTextNode(`Error at position ${err.position}:`),
+                                document.createElement('br')
+                            );
+
+                            const inputDiagnostic = document.createElement('div');
+                            inputDiagnostic.style.cssText = 'line-height: 1.8; white-space: pre; font-family: monospace;';
+
+                            const inputPrefix = document.createElement('span');
+                            inputPrefix.style.color = '#666';
+                            inputPrefix.textContent = err.input.substring(0, err.position);
+                            inputDiagnostic.appendChild(inputPrefix);
+
                             if (err.position < err.input.length) {
-                                errorHtml += '<span style="color: #fff; background: #dc3545; font-weight: bold;">' + err.input.charAt(err.position) + '</span>';
-                                errorHtml += '<span style="color: #666;">' + err.input.substring(err.position + 1) + '</span>';
+                                const inputError = document.createElement('span');
+                                inputError.style.cssText = 'color: #fff; background: #dc3545; font-weight: bold;';
+                                inputError.textContent = err.input.charAt(err.position);
+
+                                const inputSuffix = document.createElement('span');
+                                inputSuffix.style.color = '#666';
+                                inputSuffix.textContent = err.input.substring(err.position + 1);
+                                inputDiagnostic.append(inputError, inputSuffix);
                             }
-                            errorHtml += '\n';
-                            // Line 2: Pointer directly under the error character
-                            errorHtml += '<span style="color: #dc3545; font-weight: bold;">' + ' '.repeat(err.position) + '▲</span>';
-                            errorHtml += '</div>';
+
+                            const errorPointer = document.createElement('span');
+                            errorPointer.style.cssText = 'color: #dc3545; font-weight: bold;';
+                            errorPointer.textContent = `${' '.repeat(err.position)}▲`;
+                            inputDiagnostic.append(document.createTextNode('\n'), errorPointer);
+                            errorDetails.appendChild(inputDiagnostic);
                         }
-                        errorHtml += `</div>`;
-                        status.innerHTML = errorHtml;
+
+                        status.replaceChildren(errorHeading, document.createElement('br'), errorDetails);
                     } else {
                         status.textContent = `❌ ${err.message}`;
                     }
@@ -1379,7 +1370,7 @@ fe80::1%eth0
 
             // Clear any previous results
             const resultsContainer = document.getElementById('batch-results');
-            resultsContainer.innerHTML = '';
+            resultsContainer.replaceChildren();
 
             // Focus the textarea
             batchInput.focus();
@@ -1396,7 +1387,9 @@ fe80::1%eth0
             const resultsContainer = document.getElementById('batch-results');
 
             if (!input) {
-                resultsContainer.innerHTML = '<div class="status error">❌ Please enter at least one address</div>';
+                resultsContainer.replaceChildren(
+                    createTextElement('div', 'status error', '❌ Please enter at least one address')
+                );
                 return;
             }
 
@@ -1406,7 +1399,9 @@ fe80::1%eth0
                 .filter(line => line.length > 0);
 
             if (addresses.length === 0) {
-                resultsContainer.innerHTML = '<div class="status error">❌ No valid addresses found</div>';
+                resultsContainer.replaceChildren(
+                    createTextElement('div', 'status error', '❌ No valid addresses found')
+                );
                 return;
             }
 
@@ -1425,101 +1420,93 @@ fe80::1%eth0
             const failureCount = results.length - successCount;
 
             // Build summary cards
-            let summaryHTML = '<div class="batch-summary">';
+            const summary = document.createElement('div');
+            summary.className = 'batch-summary';
             if (successCount > 0) {
-                summaryHTML += `
-                    <div class="batch-summary-card success">
-                        <div class="batch-summary-icon">✓</div>
-                        <div class="batch-summary-content">
-                            <div class="batch-summary-number" style="color: #0d5c2d;">${successCount}</div>
-                            <div class="batch-summary-label" style="color: #0d5c2d;">Valid</div>
-                        </div>
-                    </div>
-                `;
+                summary.appendChild(createSummaryCard('success', '✓', successCount, 'Valid', '#0d5c2d'));
             }
             if (failureCount > 0) {
-                summaryHTML += `
-                    <div class="batch-summary-card error">
-                        <div class="batch-summary-icon">✗</div>
-                        <div class="batch-summary-content">
-                            <div class="batch-summary-number" style="color: #a91429;">${failureCount}</div>
-                            <div class="batch-summary-label" style="color: #a91429;">Invalid</div>
-                        </div>
-                    </div>
-                `;
+                summary.appendChild(createSummaryCard('error', '✗', failureCount, 'Invalid', '#a91429'));
             }
-            summaryHTML += '</div>';
 
             // Build table
-            let tableHTML = `
-                <div class="batch-table">
-                    <div class="batch-table-header">
-                        <div>#</div>
-                        <div>Address</div>
-                        <div>Status</div>
-                        <div>Properties</div>
-                        <div></div>
-                    </div>
-            `;
+            const table = document.createElement('div');
+            table.className = 'batch-table';
+
+            const tableHeader = document.createElement('div');
+            tableHeader.className = 'batch-table-header';
+            ['#', 'Address', 'Status', 'Properties', ''].forEach(label => {
+                tableHeader.appendChild(createTextElement('div', '', label));
+            });
+            table.appendChild(tableHeader);
 
             results.forEach((result, idx) => {
                 const statusClass = result.success ? 'success' : 'error';
                 const statusIcon = result.success ? '✓' : '✗';
                 const statusText = result.success ? 'Valid' : 'Invalid';
 
+                const row = document.createElement('div');
+                row.className = `batch-table-row ${statusClass}`;
+                row.dataset.index = idx;
+                row.appendChild(createTextElement('div', 'batch-row-number', idx + 1));
+                row.appendChild(createTextElement('div', 'batch-row-address', result.input));
+
+                const rowStatus = document.createElement('div');
+                rowStatus.className = `batch-row-status ${statusClass}`;
+                rowStatus.append(
+                    createTextElement('span', 'batch-row-status-icon', statusIcon),
+                    document.createTextNode(statusText)
+                );
+                row.appendChild(rowStatus);
+
+                const propertiesColumn = document.createElement('div');
+
                 // Generate property badges for successful parses
-                let propertiesHTML = '';
                 if (result.success) {
-                    const props = [];
+                    const properties = document.createElement('div');
+                    properties.className = 'batch-row-properties';
                     const data = result.data;
 
                     // Determine IP type
                     if (data.isIPv4Compatible || data.isIPv4Embed) {
                         if (data.isIPv4Embed) {
-                            props.push('<span class="batch-prop-badge embed">IPv4-Mapped</span>');
+                            properties.appendChild(createTextElement('span', 'batch-prop-badge embed', 'IPv4-Mapped'));
                         } else {
-                            props.push('<span class="batch-prop-badge ipv4">IPv4</span>');
+                            properties.appendChild(createTextElement('span', 'batch-prop-badge ipv4', 'IPv4'));
                         }
                     } else {
-                        props.push('<span class="batch-prop-badge ipv6">IPv6</span>');
+                        properties.appendChild(createTextElement('span', 'batch-prop-badge ipv6', 'IPv6'));
                     }
 
                     // Add feature badges
                     if (data.port !== null) {
-                        props.push(`<span class="batch-prop-badge port">:${data.port}</span>`);
+                        properties.appendChild(createTextElement('span', 'batch-prop-badge port', `:${data.port}`));
                     }
                     if (data.mask !== null) {
-                        props.push(`<span class="batch-prop-badge mask">/${data.mask}</span>`);
+                        properties.appendChild(createTextElement('span', 'batch-prop-badge mask', `/${data.mask}`));
                     }
                     if (data.zone) {
-                        props.push(`<span class="batch-prop-badge zone">%${data.zone}</span>`);
+                        properties.appendChild(createTextElement('span', 'batch-prop-badge zone', `%${data.zone}`));
                     }
 
-                    propertiesHTML = `<div class="batch-row-properties">${props.join('')}</div>`;
+                    propertiesColumn.appendChild(properties);
                 }
 
-                tableHTML += `
-                    <div class="batch-table-row ${statusClass}" data-index="${idx}">
-                        <div class="batch-row-number">${idx + 1}</div>
-                        <div class="batch-row-address">${result.input}</div>
-                        <div class="batch-row-status ${statusClass}">
-                            <span class="batch-row-status-icon">${statusIcon}</span>
-                            ${statusText}
-                        </div>
-                        <div>${propertiesHTML}</div>
-                        <div class="batch-row-expand">▼</div>
-                    </div>
-                    <div class="batch-detail" id="batch-detail-${idx}">
-                        <div class="batch-detail-content">
-                            ${generateDetailHTML(result, idx)}
-                        </div>
-                    </div>
-                `;
+                row.append(propertiesColumn, createTextElement('div', 'batch-row-expand', '▼'));
+
+                const detail = document.createElement('div');
+                detail.className = 'batch-detail';
+                detail.id = `batch-detail-${idx}`;
+
+                const detailContent = document.createElement('div');
+                detailContent.className = 'batch-detail-content';
+                appendBatchDetail(detailContent, result);
+                detail.appendChild(detailContent);
+
+                table.append(row, detail);
             });
 
-            tableHTML += '</div>';
-
-            resultsContainer.innerHTML = summaryHTML + tableHTML;
+            resultsContainer.replaceChildren(summary, table);
 
             // Add click handlers for expandable rows
             document.querySelectorAll('.batch-table-row').forEach(row => {
@@ -1550,55 +1537,147 @@ fe80::1%eth0
         }
 
         /**
-         * Generate detailed HTML for a single result (matching single address mode)
+         * Create an element with text content that is never interpreted as HTML
          */
-        function generateDetailHTML(result, idx) {
+        function createTextElement(tagName, className, text) {
+            const element = document.createElement(tagName);
+            if (className) {
+                element.className = className;
+            }
+            element.textContent = String(text);
+            return element;
+        }
+
+        /**
+         * Create a summary card for batch results
+         */
+        function createSummaryCard(statusClass, icon, count, label, color) {
+            const card = document.createElement('div');
+            card.className = `batch-summary-card ${statusClass}`;
+            card.appendChild(createTextElement('div', 'batch-summary-icon', icon));
+
+            const content = document.createElement('div');
+            content.className = 'batch-summary-content';
+
+            const countElement = createTextElement('div', 'batch-summary-number', count);
+            countElement.style.color = color;
+            const labelElement = createTextElement('div', 'batch-summary-label', label);
+            labelElement.style.color = color;
+            content.append(countElement, labelElement);
+            card.appendChild(content);
+            return card;
+        }
+
+        /**
+         * Append detailed output for a single batch result
+         */
+        function appendBatchDetail(container, result) {
             if (result.success) {
-                const diag = createAddressDiagnostics(result.data);
-                return `
-                    <div class="result-item" style="margin-bottom: 20px;">
-                        <h3>Formatted Address</h3>
-                        <div class="value">${result.data.formatted}</div>
-                    </div>
+                const data = result.data;
+                const formatted = document.createElement('div');
+                formatted.className = 'result-item';
+                formatted.style.marginBottom = '20px';
+                formatted.append(
+                    createTextElement('h3', '', 'Formatted Address'),
+                    createTextElement('div', 'value', data.formatted)
+                );
+                container.appendChild(formatted);
 
-                    <div style="margin-bottom: 20px;">
-                        <h3 style="margin-bottom: 12px; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Flags</h3>
-                        ${diag.flags}
-                    </div>
+                const flagsSection = document.createElement('div');
+                flagsSection.style.marginBottom = '20px';
+                const flagsHeading = createTextElement('h3', '', 'Flags');
+                flagsHeading.style.cssText = 'margin-bottom: 12px; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 0.5px;';
 
-                    ${diag.metadata}
+                const flags = document.createElement('div');
+                flags.className = 'flags';
+                [
+                    ['Has Port', data.hasPort],
+                    ['Has CIDR Mask', data.hasMask],
+                    ['IPv4 Embedded', data.isIPv4Embedded],
+                    ['IPv4 Compatible', data.isIPv4Compatible]
+                ].forEach(([label, enabled]) => {
+                    flags.appendChild(createTextElement('div', `flag${enabled ? '' : ' disabled'}`, label));
+                });
+                flagsSection.append(flagsHeading, flags);
+                container.appendChild(flagsSection);
 
-                    <div style="margin-top: 24px;">
-                        <h3 style="margin-bottom: 12px; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Components</h3>
-                        <div class="components">${diag.componentsHTML}</div>
-                    </div>
-                `;
+                const metadata = document.createElement('div');
+                metadata.className = 'result-grid';
+                [
+                    ['Port', data.port !== null ? data.port : '-'],
+                    ['CIDR Mask', data.mask !== null ? `/${data.mask}` : '-'],
+                    ['Zone ID', data.zone || '-']
+                ].forEach(([label, value]) => {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+                    item.append(createTextElement('h3', '', label), createTextElement('div', 'value', value));
+                    metadata.appendChild(item);
+                });
+                container.appendChild(metadata);
+
+                const componentsSection = document.createElement('div');
+                componentsSection.style.marginTop = '24px';
+                const componentsHeading = createTextElement('h3', '', 'Components');
+                componentsHeading.style.cssText = 'margin-bottom: 12px; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 0.5px;';
+
+                const components = document.createElement('div');
+                components.className = 'components';
+                data.components.forEach((_, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'component';
+                    item.append(
+                        createTextElement('div', 'label', `[${index}]`),
+                        createTextElement('div', 'hex', `0x${data.getComponentHex(index)}`)
+                    );
+                    components.appendChild(item);
+                });
+                componentsSection.append(componentsHeading, components);
+                container.appendChild(componentsSection);
             } else {
                 // Error diagnostics
-                let errorHTML = `<div style="margin-bottom: 16px;"><strong style="color: #a91429; font-size: 1.1em;">❌ ${result.error.message || 'Parse error'}</strong></div>`;
+                const errorHeading = document.createElement('div');
+                errorHeading.style.marginBottom = '16px';
+                const errorText = createTextElement('strong', '', `❌ ${result.error.message || 'Parse error'}`);
+                errorText.style.cssText = 'color: #a91429; font-size: 1.1em;';
+                errorHeading.appendChild(errorText);
+                container.appendChild(errorHeading);
 
                 if (result.error.diagnostic && result.error.diagnostic.message) {
-                    errorHTML += `<div style="margin-bottom: 12px; color: #721c24; font-weight: 500;">${result.error.diagnostic.message}</div>`;
+                    const diagnosticMessage = createTextElement('div', '', result.error.diagnostic.message);
+                    diagnosticMessage.style.cssText = 'margin-bottom: 12px; color: #721c24; font-weight: 500;';
+                    container.appendChild(diagnosticMessage);
 
                     if (result.error.position !== undefined) {
-                        errorHTML += `<div style="margin-top: 16px; font-family: 'SF Mono', 'Consolas', 'Monaco', monospace; font-size: 0.95em;">`;
-                        errorHTML += `<div style="margin-bottom: 8px; color: #666;">Error at position ${result.error.position}:</div>`;
-                        errorHTML += '<div style="line-height: 1.8; white-space: pre; background: #fff; padding: 12px; border-radius: 8px; border: 2px solid #ffc4cd;">';
+                        const diagnostic = document.createElement('div');
+                        diagnostic.style.cssText = "margin-top: 16px; font-family: 'SF Mono', 'Consolas', 'Monaco', monospace; font-size: 0.95em;";
+
+                        const position = createTextElement('div', '', `Error at position ${result.error.position}:`);
+                        position.style.cssText = 'margin-bottom: 8px; color: #666;';
+
+                        const inputDiagnostic = document.createElement('div');
+                        inputDiagnostic.style.cssText = 'line-height: 1.8; white-space: pre; background: #fff; padding: 12px; border-radius: 8px; border: 2px solid #ffc4cd;';
 
                         // Show input with highlighted error character
-                        errorHTML += '<span style="color: #666;">' + result.input.substring(0, result.error.position) + '</span>';
+                        const inputPrefix = createTextElement('span', '', result.input.substring(0, result.error.position));
+                        inputPrefix.style.color = '#666';
+                        inputDiagnostic.appendChild(inputPrefix);
+
                         if (result.error.position < result.input.length) {
-                            errorHTML += '<span style="color: #fff; background: #dc3545; font-weight: bold;">' + result.input.charAt(result.error.position) + '</span>';
-                            errorHTML += '<span style="color: #666;">' + result.input.substring(result.error.position + 1) + '</span>';
+                            const inputError = createTextElement('span', '', result.input.charAt(result.error.position));
+                            inputError.style.cssText = 'color: #fff; background: #dc3545; font-weight: bold;';
+                            const inputSuffix = createTextElement('span', '', result.input.substring(result.error.position + 1));
+                            inputSuffix.style.color = '#666';
+                            inputDiagnostic.append(inputError, inputSuffix);
                         }
-                        errorHTML += '\n';
+
                         // Pointer line underneath
-                        errorHTML += '<span style="color: #dc3545; font-weight: bold;">' + ' '.repeat(result.error.position) + '▲</span>';
-                        errorHTML += '</div></div>';
+                        const pointer = createTextElement('span', '', `${' '.repeat(result.error.position)}▲`);
+                        pointer.style.cssText = 'color: #dc3545; font-weight: bold;';
+                        inputDiagnostic.append(document.createTextNode('\n'), pointer);
+                        diagnostic.append(position, inputDiagnostic);
+                        container.appendChild(diagnostic);
                     }
                 }
-
-                return errorHTML;
             }
         }
 
