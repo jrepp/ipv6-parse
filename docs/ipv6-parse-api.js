@@ -43,7 +43,7 @@ class IPv6Parser {
       try {
         this._resultSize = this._module.ccall('ipv6_result_size', 'number', [], []);
         this._diagSize = this._module.ccall('ipv6_diag_size', 'number', [], []);
-      } catch (e) {
+      } catch {
         // Fall back to hardcoded sizes
       }
     }
@@ -184,7 +184,7 @@ class IPv6Parser {
       );
 
       return result === 0; // IPV6_COMPARE_OK
-    } catch (err) {
+    } catch {
       return false;
     }
   }
@@ -197,7 +197,7 @@ class IPv6Parser {
   getVersion() {
     try {
       return this._module.ccall('ipv6_version', 'string', [], []);
-    } catch (err) {
+    } catch {
       return 'unknown';
     }
   }

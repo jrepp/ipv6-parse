@@ -15,13 +15,15 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run lint && npm run test:node && npm run test:wasm && npm run test:sync && npm run test:errors && npm run test:diagnostics",
+    "test": "npm run test:toolchain && npm run lint && npm run test:security && npm run test:node && npm run test:wasm && npm run test:sync && npm run test:errors && npm run test:diagnostics",
     "test:node": "node test/test-node.js",
     "test:wasm": "node test/test-wasm.js",
     "test:api": "node test/test-api.js",
     "test:sync": "node test/test-sync-api.js",
     "test:errors": "node test/test-errors.js",
     "test:diagnostics": "node test/test-diagnostics.js",
+    "test:security": "node test/test-dependency-security.js",
+    "test:toolchain": "node test/test-toolchain.js",
     "test:performance": "node test/test-performance.js",
     "bench": "node test/test-performance.js",
     "lint": "eslint index.js docs/ipv6-parse-api.js test/*.js",
@@ -56,11 +58,26 @@
     "url": "https://github.com/jrepp/ipv6-parse/issues"
   },
   "homepage": "https://github.com/jrepp/ipv6-parse#readme",
+  "packageManager": "npm@12.0.2",
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=26.7.0",
+    "npm": ">=12.0.2"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "26.7.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": "12.0.2",
+      "onFail": "error"
+    }
   },
   "devDependencies": {
-    "eslint": "^8.57.0"
-  },
-  "dependencies": {}
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.1",
+    "globals": "17.9.0"
+  }
 }
