@@ -168,6 +168,7 @@ jobs:
         uses: actions/setup-node@v6.4.0
         with:
           node-version: '26.7.0'
+          package-manager-cache: false
 
       - name: Setup npm
         working-directory: ${{ runner.temp }}
@@ -237,6 +238,7 @@ jobs:
         uses: actions/setup-node@v6.4.0
         with:
           node-version: '26.7.0'
+          package-manager-cache: false
 
       - name: Setup npm
         working-directory: ${{ runner.temp }}

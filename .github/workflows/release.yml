@@ -224,6 +224,7 @@ jobs:
         with:
           node-version: '26.7.0'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       - name: Setup npm
         working-directory: ${{ runner.temp }}
