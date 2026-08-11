@@ -205,7 +205,7 @@ async function runTests() {
 
       try {
         addr.formatted = 'modified';
-      } catch (e) {
+      } catch {
         // Expected to fail in strict mode
       }
 

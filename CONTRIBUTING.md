@@ -21,7 +21,7 @@ Thank you for your interest in contributing to ipv6-parse! This document provide
 
 2. **CMake** 3.12+
 
-3. **Node.js** 12+ and npm (for JavaScript/WASM)
+3. **Node.js** 26.7.0 and npm 12.0.2 (for JavaScript/WASM)
 
 4. **Emscripten SDK** (for WebAssembly):
    ```bash
@@ -40,7 +40,7 @@ git clone https://github.com/jrepp/ipv6-parse.git
 cd ipv6-parse
 
 # Install Node.js dependencies
-npm install
+npm ci
 
 # Build WASM module (requires Emscripten)
 ./build_wasm.sh
@@ -169,7 +169,7 @@ npm run lint:fix         # Auto-fix issues
 - Use single quotes for strings
 - 2-space indentation
 - Semicolons required
-- Follow ESLint rules (see `.eslintrc.json`)
+- Follow ESLint rules (see `eslint.config.js`)
 
 ### Build Validation
 

@@ -162,15 +162,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
-          node-version: '18'
+          node-version: '26.7.0'
+
+      - name: Setup npm
+        working-directory: ${{ runner.temp }}
+        run: npm install --global npm@12.0.2
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run ESLint
         run: npm run lint
+
+      - name: Run dependency security tests
+        run: npm run test:security
 
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
