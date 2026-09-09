@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Work with typed addresses, optional metadata, and parse errors.">
+    <title>Using ipv6-parse in TypeScript · ipv6-parse</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header>
+        <nav aria-label="Documentation">
+            <a href="guide.html">IPv6 introduction</a>
+            <a href="c-api.html">C</a>
+            <a href="javascript.html">JavaScript</a>
+            <a href="typescript.html" aria-current="page">TypeScript</a>
+            <a href="development.html">Development</a>
+            <a href="index.html">Demo</a>
+        </nav>
+        <h1>Using ipv6-parse in TypeScript</h1>
+        <p>Work with typed addresses, optional metadata, and parse errors.</p>
+        <nav aria-label="On this page">
+            <a href="#setup">Setup</a>
+            <a href="#nullable-fields">Optional fields</a>
+            <a href="#errors">Errors</a>
+            <a href="#comparison">Comparison</a>
+            <a href="#browser">Browser</a>
+        </nav>
+    </header>
+    <main id="main">
+        <p>TypeScript uses the same runtime as the <a href="javascript.html">JavaScript guide</a>.
+            The npm package includes declarations for parsed addresses, parser methods, and comparison options.</p>
+        <section id="setup">
+            <h2>Install and initialize</h2>
+            <pre><code class="language-sh">npm install ipv6-parse
+npm install --save-dev typescript</code></pre>
+            <p>Save this as <code>example.ts</code>. Import <code>IPv6Address</code> as a type, and obtain runtime classes
+                from <code>createParser()</code> after WebAssembly has loaded.</p>
+            <pre><code class="language-typescript" data-example="ts-quick-start">import { createParser, type IPv6Address } from 'ipv6-parse';
+
+function describe(addr: IPv6Address): string {
+    const port = addr.port === null ? 'no port' : `port ${addr.port}`;
+    const prefix = addr.mask === null ? 'no prefix length' : `/${addr.mask}`;
+    return `${addr.formatted} (${port}, ${prefix})`;
+}
+
+async function main(): Promise&lt;void&gt; {
+    const { parser } = await createParser();
+    const addr = parser.parse('[fe80::7/64%eth0]:8080');
+    console.log(describe(addr));
+}
+
+main().catch(console.error);</code></pre>
+            <p>For a CommonJS Node.js project, compile and run:</p>
+            <pre><code class="language-sh">npx tsc example.ts --strict --target ES2020 --module commonjs --skipLibCheck
+node example.js</code></pre>
+            <p><code>--strict</code> checks application types, including nullable fields. <code>--skipLibCheck</code>
+                skips checking the package's declaration files themselves; the current declarations contain conflicts
+                that otherwise prevent compilation.</p>
+        </section>
+        <section id="nullable-fields">
+            <h2>Narrow optional fields before using them</h2>
+            <p><code>port</code> and <code>mask</code> have type <code>number | null</code>;
+                <code>zone</code> has type <code>string | null</code>. An explicit null check preserves valid zero values.
+                Checking <code>hasPort</code> alone does not narrow the TypeScript type of <code>port</code>.</p>
+            <pre><code class="language-typescript" data-example="ts-fields">import { createParser } from 'ipv6-parse';
+
+async function main(): Promise&lt;void&gt; {
+    const { parser } = await createParser();
+    const addr = parser.tryParse('[::1]:0');
+    if (addr === null) {
+        console.log('Invalid address');
+        return;
+    }
+    if (addr.port !== null) {
+        console.log(addr.port.toFixed(0)); // "0"
+    }
+    if (addr.zone !== null) {
+        console.log(addr.zone);
+    }
+}
+
+main().catch(console.error);</code></pre>
+            <p><code>tryParse()</code> returns <code>IPv6Address | null</code>. The package-level
+                <code>tryParse()</code> returns <code>Promise&lt;IPv6Address | null&gt;</code>; await it before narrowing.</p>
+        </section>
+        <section id="errors">
+            <h2>Narrow a caught error</h2>
+            <p>Under strict checking, a caught value is <code>unknown</code>. Check its class before reading parser fields.</p>
+            <pre><code class="language-typescript" data-example="ts-errors">import { createParser } from 'ipv6-parse';
+
+async function main(): Promise&lt;void&gt; {
+    const { parser, IPv6ParseError } = await createParser();
+    try {
+        parser.parse('2001:gggg::7');
+    } catch (error: unknown) {
+        if (error instanceof IPv6ParseError) {
+            console.error(error.message, error.input);
+        } else {
+            throw error;
+        }
+    }
+}
+
+main().catch(console.error);</code></pre>
+        </section>
+        <section id="comparison">
+            <h2>Use typed comparison options</h2>
+            <pre><code class="language-typescript" data-example="ts-comparison">import { createParser, type ComparisonOptions } from 'ipv6-parse';
+
+async function main(): Promise&lt;void&gt; {
+    const { parser } = await createParser();
+    const options: ComparisonOptions = { ignorePort: true };
+    console.log(parser.equals('[::1]:80', '[::1]:443', options)); // true
+}
+
+main().catch(console.error);</code></pre>
+            <p>The current npm declarations lag behind the runtime in a few places. <code>ignorePort</code> and
+                <code>ignoreMask</code> work in both. The declared <code>ignoreZone</code> does not control runtime behavior:
+                zones are always excluded. The runtime's <code>ignoreFormat</code> option and detailed error properties
+                are not currently declared in the npm types. See the
+                <a href="javascript.html#comparison">JavaScript comparison guide</a> for behavior.</p>
+        </section>
+        <section id="browser">
+            <h2>TypeScript in the browser</h2>
+            <p>Compile TypeScript to JavaScript and use the <a href="javascript.html#browser">browser loading sequence</a>.
+                The browser wrapper has its own declarations in <code>docs/ipv6-parse-api.d.ts</code>.
+                Types do not load WebAssembly: wait for <code>createIPv6Module()</code> before constructing a parser.</p>
+            <p>For the exact declarations, see the
+                <a href="https://github.com/jrepp/ipv6-parse/blob/main/index.d.ts">npm types</a> and
+                <a href="https://github.com/jrepp/ipv6-parse/blob/main/docs/ipv6-parse-api.d.ts">browser types</a>.</p>
+        </section>
+    </main>
+    <footer><a href="https://github.com/jrepp/ipv6-parse">Source on GitHub</a> ·
+        <a href="https://github.com/jrepp/ipv6-parse/blob/main/CONTRIBUTING.md">Contributing</a> ·
+        <a href="https://github.com/jrepp/ipv6-parse/blob/main/LICENSE">MIT license</a></footer>
+</body>
+</html>

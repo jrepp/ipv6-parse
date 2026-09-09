@@ -1,0 +1,32 @@
+        :root { color-scheme: light dark; }
+        body { max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem; font: 1rem/1.65 system-ui, sans-serif; }
+        a { color: light-dark(#0969da, #79c0ff); text-underline-offset: 0.15em; }
+        nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
+        h1, h2, h3 { line-height: 1.25; }
+        h2 { margin-top: 3rem; border-bottom: 1px solid light-dark(#d1d9e0, #3d444d); padding-bottom: 0.5rem; }
+        h3 { margin-top: 2rem; }
+        code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
+        pre { padding: 1rem; overflow-x: auto; background: light-dark(#f6f8fa, #161b22); border-radius: 0.3rem; }
+        pre code { overflow-wrap: normal; }
+        .table-scroll { overflow-x: auto; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { text-align: left; vertical-align: top; padding: 0.6rem; border-bottom: 1px solid light-dark(#d1d9e0, #3d444d); }
+        dt { font-weight: 600; margin-top: 1rem; }
+        dd { margin-left: 0; }
+        section { scroll-margin-top: 1rem; }
+        footer { margin-top: 3rem; border-top: 1px solid light-dark(#d1d9e0, #3d444d); padding-top: 1rem; }
+        nav a[aria-current="page"] { color: inherit; font-weight: 700; }
+        .skip-link { position: absolute; top: -5rem; }
+        .skip-link:focus { position: static; }
+        details { margin: 1rem 0; padding: 0.75rem 1rem; border: 1px solid light-dark(#d1d9e0, #3d444d); border-radius: 0.3rem; }
+        summary { cursor: pointer; font-weight: 600; }
+        .next { margin-top: 2rem; }
+        .address-steps th { width: 10rem; }
+        .address-steps code { white-space: nowrap; }
+        @media (max-width: 40rem) {
+            .address-steps thead { display: none; }
+            .address-steps tbody, .address-steps tr, .address-steps th, .address-steps td { display: block; }
+            .address-steps th { width: auto; border-bottom: 0; padding-bottom: 0; }
+            .address-steps td { padding-top: 0.3rem; }
+            .address-steps code { font-size: 0.78em; }
+        }

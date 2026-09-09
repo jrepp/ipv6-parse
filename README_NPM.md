@@ -1,5 +1,7 @@
 # ipv6-parse (NPM Package)
 
+Start with the [JavaScript API guide](https://jrepp.github.io/ipv6-parse/javascript.html) for API usage and examples.
+
 High-performance IPv6/IPv4 address parser with full RFC compliance, compiled to WebAssembly.
 
 **[View on NPM](https://www.npmjs.com/package/ipv6-parse)** | **[GitHub](https://github.com/jrepp/ipv6-parse)**

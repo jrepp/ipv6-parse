@@ -3,291 +3,155 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Installation, supported address formats, and API reference for the ipv6-parse C and JavaScript library.">
-    <title>ipv6-parse documentation</title>
-    <style>
-        :root { color-scheme: light dark; }
-        body { max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem; font: 1rem/1.65 system-ui, sans-serif; }
-        a { color: light-dark(#0969da, #79c0ff); text-underline-offset: 0.15em; }
-        nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
-        h1, h2, h3 { line-height: 1.25; }
-        h2 { margin-top: 3rem; border-bottom: 1px solid light-dark(#d1d9e0, #3d444d); padding-bottom: 0.5rem; }
-        h3 { margin-top: 2rem; }
-        code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
-        pre { padding: 1rem; overflow-x: auto; background: light-dark(#f6f8fa, #161b22); border-radius: 0.3rem; }
-        pre code { overflow-wrap: normal; }
-        .table-scroll { overflow-x: auto; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { text-align: left; vertical-align: top; padding: 0.6rem; border-bottom: 1px solid light-dark(#d1d9e0, #3d444d); }
-        dt { font-weight: 600; margin-top: 1rem; }
-        dd { margin-left: 0; }
-        section { scroll-margin-top: 1rem; }
-        footer { margin-top: 3rem; border-top: 1px solid light-dark(#d1d9e0, #3d444d); padding-top: 1rem; }
-    </style>
+    <meta name="description" content="A practical introduction to IPv6 notation, with examples you can read, expand, and parse.">
+    <title>Reading IPv6 addresses · ipv6-parse</title>
+    <link rel="stylesheet" href="guide.css">
 </head>
 <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <header>
-        <nav aria-label="Project">
-            <a href="index.html">Interactive demo</a>
-            <a href="https://github.com/jrepp/ipv6-parse">Source on GitHub</a>
-            <a href="https://github.com/jrepp/ipv6-parse/releases">Releases</a>
+        <nav aria-label="Documentation">
+            <a href="guide.html" aria-current="page">IPv6 introduction</a>
+            <a href="c-api.html">C</a>
+            <a href="javascript.html">JavaScript</a>
+            <a href="typescript.html">TypeScript</a>
+            <a href="development.html">Development</a>
+            <a href="index.html">Demo</a>
         </nav>
-        <h1>ipv6-parse documentation</h1>
-        <p>Parse, format, and compare IPv6 and IPv4 addresses in C or JavaScript.</p>
-        <nav aria-label="Contents">
-            <a href="#formats">Address formats</a>
-            <a href="#installation">Installation</a>
-            <a href="#c-api">C API</a>
-            <a href="#javascript">JavaScript</a>
-            <a href="#development">Development</a>
+        <h1>Reading IPv6 addresses</h1>
+        <p>A practical introduction to IPv6 notation, with examples you can read, expand, and parse.</p>
+        <nav aria-label="On this page">
+            <a href="#formats">Address basics</a>
+            <a href="#compression">Compression</a>
+            <a href="#prefixes">Prefixes</a>
+            <a href="#special-addresses">Common addresses</a>
+            <a href="#ports">Ports</a>
+            <a href="#zone-ids">Zone IDs</a>
+            <a href="#ipv4-compatibility">IPv4</a>
+            <a href="#installation">Language guides</a>
         </nav>
     </header>
-    <main>
+    <main id="main">
+        <p>An address such as <code>[fe80::1%eth0]:8080</code> contains several pieces of information.
+            This introduction explains how to read them before using the library. You can try the examples in the
+            <a href="index.html">browser demo</a>, or go straight to a language guide above.</p>
         <section id="formats">
-            <h2>Address formats</h2>
-            <div class="table-scroll">
-                <table>
-                    <thead><tr><th>Format</th><th>Example</th></tr></thead>
-                    <tbody>
-                        <tr><td>IPv6, including zero compression</td><td><code>2001:db8::1</code>, <code>::1</code></td></tr>
-                        <tr><td>IPv4</td><td><code>192.0.2.1</code></td></tr>
-                        <tr><td>IPv4 embedded in IPv6</td><td><code>::ffff:192.0.2.1</code></td></tr>
-                        <tr><td>CIDR mask</td><td><code>2001:db8::/32</code>, <code>10.0.0.0/8</code></td></tr>
-                        <tr><td>Port</td><td><code>[::1]:8080</code>, <code>192.0.2.1:443</code></td></tr>
-                        <tr><td>Zone ID</td><td><code>fe80::1%eth0</code>, <code>fe80::1%1</code></td></tr>
-                        <tr><td>Combined IPv6 fields</td><td><code>[2001:db8::1/64%eth0]:443</code></td></tr>
-                        <tr><td>Shortened IPv4</td><td><code>10.1</code> expands to <code>10.0.0.1</code></td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <p>IPv6 ports require brackets. When combining fields, place the CIDR mask before the zone ID, inside the brackets.</p>
-            <h3 id="rfc-conformance">RFC support</h3>
-            <p>The parser supports the address forms in <a href="https://www.rfc-editor.org/rfc/rfc4291.html">RFC 4291</a>
-                and zone identifiers from <a href="https://www.rfc-editor.org/rfc/rfc4007.html">RFC 4007</a>.
-                The IPv6 formatter uses lowercase hexadecimal, removes leading zeros, and compresses the longest zero run
-                according to <a href="https://www.rfc-editor.org/rfc/rfc5952.html">RFC 5952</a>.</p>
-            <h3 id="zone-ids">Zone IDs</h3>
-            <p>A zone ID follows <code>%</code> and identifies a scope, often a network interface for a link-local address.
-                This library accepts numeric and textual identifiers shorter than 16 characters.
-                The length limit is a library constraint.</p>
-            <pre><code class="language-c">const char *input = "[fe80::1/64%eth0]:8080";
-ipv6_address_full_t addr = {0};
-
-if (ipv6_from_str(input, strlen(input), &amp;addr)) {
-    printf("Interface: %.*s\n", (int)addr.iface_len, addr.iface);
-
-    char output[IPV6_STRING_SIZE];
-    ipv6_to_str(&amp;addr, output, sizeof(output));
-    // output: [fe80::1/64%eth0]:8080
-}</code></pre>
-            <p><code>iface</code> points into the original input; it is not a copy or a separately terminated string.
-                Keep the input alive while accessing or formatting an address with a zone ID.</p>
-            <h3 id="ipv4-compatibility">IPv4 representation</h3>
-            <p>Plain IPv4 addresses use the first two 16-bit components and set <code>IPV6_FLAG_IPV4_COMPAT</code>.
-                For example, <code>127.111.2.1</code> is stored as <code>0x7f6f, 0x0201</code>.
-                Embedded IPv4 addresses use the last two components and set <code>IPV6_FLAG_IPV4_EMBED</code>.</p>
-            <p>You can construct an address directly by zero-initializing <code>ipv6_address_full_t</code>, filling in its
-                components, and setting the flags for the fields you supply.</p>
+            <h2>Eight groups, 128 bits</h2>
+            <p>IPv6 writes a 128-bit address as eight colon-separated groups. Each group contains 16 bits,
+                written with one to four hexadecimal digits: <code>0</code>–<code>9</code> and <code>a</code>–<code>f</code>.
+                Uppercase letters have the same value. These are the address notation rules in
+                <a href="https://datatracker.ietf.org/doc/html/rfc4291#section-2.2">RFC 4291 §2.2</a>.</p>
+            <pre><code>2001:0db8:0042:0000:0000:0000:0000:0007</code></pre>
+            <p>We use <code>2001:db8::/32</code> for examples because it is reserved for documentation by
+                <a href="https://datatracker.ietf.org/doc/html/rfc3849">RFC 3849</a>.</p>
+        </section>
+        <section id="compression">
+            <h2>Shortening the address</h2>
+            <p>Remove leading zeros within each group, then replace a run of zero groups with <code>::</code>.
+                All three lines below identify the same address.</p>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Address shortening steps"><table class="address-steps">
+                <thead><tr><th>Step</th><th>Address</th></tr></thead>
+                <tbody>
+                    <tr><th scope="row">Full form</th><td><code>2001:0db8:0042:0000:0000:0000:0000:0007</code></td></tr>
+                    <tr><th scope="row">Leading zeros removed</th><td><code>2001:db8:42:0:0:0:0:7</code></td></tr>
+                    <tr><th scope="row">Zero groups compressed</th><td><code>2001:db8:42::7</code></td></tr>
+                </tbody>
+            </table></div>
+            <p>To expand <code>::</code>, count the visible groups and insert enough zero groups to reach eight.
+                Here there are four visible groups, so <code>::</code> stands for four zero groups.
+                It can occur only once: <code>2001::42::7</code> leaves the position of those zeros ambiguous.</p>
+            <p id="rfc-conformance">For consistent output, <a href="https://www.rfc-editor.org/rfc/rfc5952.html#section-4">RFC 5952</a>
+                uses lowercase, compresses the longest zero run, and chooses the first run when lengths tie.
+                A single zero group stays <code>0</code>. A parser can accept more spellings than a formatter emits.</p>
+            <details><summary>Try it: expand 2001:db8::42:7</summary>
+                <p><code>2001:0db8:0000:0000:0000:0000:0042:0007</code>.
+                    Four visible groups leave four groups for <code>::</code>.</p>
+            </details>
+        </section>
+        <section id="prefixes">
+            <h2>Prefixes describe a range</h2>
+            <p>The decimal number after <code>/</code> counts the leading bits in a prefix.
+                In <code>2001:db8:42::/48</code>, the first three groups are fixed: 3 × 16 = 48 bits.
+                <code>/128</code> fixes every bit; <code>/0</code> fixes none.
+                See <a href="https://datatracker.ietf.org/doc/html/rfc4291#section-2.3">RFC 4291 §2.3</a>.</p>
+            <pre><code>2001:db8:42::/48       a prefix
+2001:db8:42::7/48      an address with a prefix length</code></pre>
+            <p>In this library the prefix length is called <code>mask</code>. Parsing the second line retains
+                the <code>7</code>; it does not calculate a network address or check subnet membership.</p>
+        </section>
+        <section id="special-addresses">
+            <h2>Addresses you will recognize</h2>
+            <div class="table-scroll"><table>
+                <thead><tr><th>Address or prefix</th><th>Meaning</th></tr></thead>
+                <tbody>
+                    <tr><td><code>::</code></td><td>Unspecified address: no address yet.</td></tr>
+                    <tr><td><code>::1</code></td><td>Loopback: the local machine.</td></tr>
+                    <tr><td><code>fe80::/10</code></td><td>Link-local: communication on a local link.</td></tr>
+                    <tr><td><code>ff00::/8</code></td><td>Multicast: a group of interfaces.</td></tr>
+                </tbody>
+            </table></div>
+            <p>These forms come from <a href="https://datatracker.ietf.org/doc/html/rfc4291#section-2.4">RFC 4291</a>.
+                The parser checks address syntax; it does not determine whether a destination is assigned or reachable.</p>
+        </section>
+        <section id="ports">
+            <h2>Brackets separate an address from a port</h2>
+            <p>A port identifies a service endpoint and sits outside the 128 address bits. Because IPv6 already uses colons,
+                bracket the address before adding a port:</p>
+            <pre><code>[2001:db8::7]:443</code></pre>
+            <p>Without brackets, a final <code>:443</code> could be another hexadecimal address group.
+                <a href="https://www.rfc-editor.org/rfc/rfc5952.html#section-6">RFC 5952 §6</a> discusses this ambiguity.
+                In ipv6-parse, IPv6 ports require brackets and the port is a decimal number from 0 to 65535.</p>
+        </section>
+        <section id="zone-ids">
+            <h2>A zone ID supplies local context</h2>
+            <p>A machine can have several links with link-local addresses. In <code>fe80::1%eth0</code>,
+                the suffix <code>%eth0</code> identifies which zone to use, commonly a network interface.
+                A numeric form such as <code>fe80::1%3</code> is also possible.</p>
+            <p>Zone IDs have local meaning: another machine may use different names or numbers.
+                They are separate from the address bits. This notation is defined in
+                <a href="https://www.rfc-editor.org/rfc/rfc4007.html#section-11">RFC 4007 §11</a>.</p>
+            <p>The library records a zone ID without looking up the interface. It accepts identifiers shorter than 16 characters;
+                that is a library limit. With a port, use <code>[fe80::1%eth0]:8080</code>.</p>
+        </section>
+        <section id="ipv4-compatibility">
+            <h2>IPv4 inside IPv6</h2>
+            <p>A dotted-decimal ending occupies the last 32 bits, replacing two hexadecimal groups.
+                <code>::ffff:192.0.2.1</code> is an IPv4-mapped address, equivalent to <code>::ffff:c000:201</code>.
+                See <a href="https://datatracker.ietf.org/doc/html/rfc4291#section-2.5.5.2">RFC 4291 §2.5.5.2</a>.</p>
+            <p>The library also accepts plain IPv4, such as <code>192.0.2.1:443</code>, and shortened forms such as
+                <code>10.1</code>, which it expands to <code>10.0.0.1</code>.
+                Its API flag named “IPv4 compatible” means plain IPv4 input. The C guide explains the
+                <a href="c-api.html#ipv4-compatibility">storage and comparison rules</a>.</p>
+        </section>
+        <section id="combined">
+            <h2>Read a combined input</h2>
+            <pre><code>[fe80::7/64%eth0]:8080</code></pre>
+            <dl>
+                <dt><code>fe80::7</code></dt><dd>The IPv6 address.</dd>
+                <dt><code>/64</code></dt><dd>The prefix length, stored as the mask.</dd>
+                <dt><code>%eth0</code></dt><dd>The local zone ID.</dd>
+                <dt><code>:8080</code></dt><dd>The port, outside the brackets.</dd>
+            </dl>
+            <p>This combined syntax is supported by ipv6-parse: mask first, then zone, with both inside the brackets.
+                It is a library input format, not a URL. The library parses the pieces; your application decides how to use them.</p>
+            <details><summary>Try it: what does [2001:db8::7]:64 mean?</summary>
+                <p>Address <code>2001:db8::7</code>, port <code>64</code>, and no prefix length.
+                    A prefix length would start with <code>/</code>.</p>
+            </details>
         </section>
         <section id="installation">
-            <h2>Installation</h2>
-            <h3>Build from source</h3>
-            <p>Requires CMake 3.12 or newer and a C/C++ toolchain. Run these commands from the repository root:</p>
-            <pre><code class="language-sh">cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-cmake --install build --config Release</code></pre>
-            <p>The default build produces a static library. Add <code>-DBUILD_SHARED_LIBS=ON</code> to the configure command
-                for a shared library, or <code>-DCMAKE_INSTALL_PREFIX=/your/prefix</code> to choose an install location.</p>
-            <h3>CMake and pkg-config</h3>
-            <p>After installing, link the exported CMake target:</p>
-            <pre><code class="language-cmake">find_package(ipv6-parse REQUIRED)
-target_link_libraries(myapp PRIVATE ipv6-parse::ipv6-parse)</code></pre>
-            <p>Or compile with pkg-config:</p>
-            <pre><code class="language-sh">cc myapp.c $(pkg-config --cflags --libs ipv6-parse) -o myapp</code></pre>
-            <p>To include the source in an existing CMake project, use <code>add_subdirectory</code> and link the
-                <code>ipv6-parse</code> target. The implementation is in <code>ipv6.c</code>, with declarations in
-                <code>ipv6.h</code> and a configuration header generated by CMake.</p>
-            <h3>Packages</h3>
-            <p>Download Debian, RPM, and WebAssembly assets from the
-                <a href="https://github.com/jrepp/ipv6-parse/releases">release page</a>.
-                For native packages, use the actual downloaded filename:</p>
-            <pre><code class="language-sh">sudo apt install ./&lt;package-file&gt;.deb
-# Fedora / RHEL:
-sudo dnf install ./&lt;package-file&gt;.rpm</code></pre>
-            <p>The repository also contains a Homebrew formula, a Conan recipe, and a vcpkg port. Setup and integration examples:
-                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_PACKAGE_MANAGERS.md#homebrew">Homebrew</a>,
-                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_CONAN.md">Conan</a>, and
-                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_PACKAGE_MANAGERS.md#vcpkg">vcpkg</a>.</p>
-        </section>
-        <section id="c-api">
-            <h2>C API</h2>
-            <p>Include <code>ipv6.h</code>. Parsing and formatting use caller-owned memory and do not allocate dynamically.
-                The complete declarations are also available in the
-                <a href="https://github.com/jrepp/ipv6-parse/blob/main/ipv6.h">public header</a>.</p>
-            <h3 id="ipv6-from-str">Parsing</h3>
-            <pre><code class="language-c">bool ipv6_from_str(const char *input, size_t input_bytes,
-                   ipv6_address_full_t *out);
-
-bool ipv6_from_str_diag(const char *input, size_t input_bytes,
-                        ipv6_address_full_t *out,
-                        ipv6_diag_func_t func, void *user_data);</code></pre>
-            <p>Pass the input length in bytes, excluding the terminating NUL. Both functions return <code>true</code>
-                on success and <code>false</code> on failure. Use <code>strlen(input)</code> for a C string.
-                Only use the parsed result after success.</p>
-            <p>The diagnostic variant calls your callback with an event code, a message, and the position in the input
-                associated with the error. <code>user_data</code> is passed through to the callback.</p>
-            <h3 id="ipv6-to-str">Formatting</h3>
-            <pre><code class="language-c">size_t ipv6_to_str(const ipv6_address_full_t *in,
-                   char *output, size_t output_bytes);</code></pre>
-            <p>Supply a buffer of <code>IPV6_STRING_SIZE</code> bytes. The return value is the number of characters written,
-                excluding the terminating NUL. IPv6 formatting includes the mask, zone ID, and port when present.</p>
-            <h3 id="ipv6-compare">Comparison</h3>
-            <pre><code class="language-c">ipv6_compare_result_t ipv6_compare(const ipv6_address_full_t *a,
-                                    const ipv6_address_full_t *b,
-                                    uint32_t ignore_flags);</code></pre>
-            <p>Returns <code>IPV6_COMPARE_OK</code> when equal, or a code identifying a format, address, mask, or port mismatch.
-                Pass <code>0</code> for the default comparison. Combine <code>IPV6_FLAG_HAS_MASK</code> and
-                <code>IPV6_FLAG_HAS_PORT</code> in <code>ignore_flags</code> to ignore those fields.</p>
-            <p>Passing <code>IPV6_FLAG_IPV4_EMBED</code> or <code>IPV6_FLAG_IPV4_COMPAT</code> allows comparisons
-                between plain and embedded IPv4 representations. Zone IDs are not compared.</p>
-            <h3 id="address-structure">Address structure and flags</h3>
-            <p>Components are 16-bit values in address order: <code>aa11:bb22::</code> begins with
-                <code>0xaa11, 0xbb22</code>. Flags indicate whether a port or mask is present and which IPv4 form is used.</p>
-            <pre><code class="language-c">typedef enum {
-    IPV6_FLAG_HAS_PORT      = 0x00000001,   // the address specifies a port setting
-    IPV6_FLAG_HAS_MASK      = 0x00000002,   // the address specifies a CIDR mask
-    IPV6_FLAG_IPV4_EMBED    = 0x00000004,   // the address has an embedded IPv4 address in the last 32bits
-    IPV6_FLAG_IPV4_COMPAT   = 0x00000008,   // the address is IPv4 compatible (1.2.3.4:5555)
-} ipv6_flag_t;</code></pre>
-            <pre><code class="language-c">#define IPV6_NUM_COMPONENTS 8
-#define IPV4_NUM_COMPONENTS 2
-#define IPV4_EMBED_INDEX 6
-typedef struct {
-    uint16_t                components[IPV6_NUM_COMPONENTS];
-} ipv6_address_t;</code></pre>
-            <pre><code class="language-c">typedef struct {
-    ipv6_address_t          address;        // address components
-    uint16_t                port;           // port binding
-    uint16_t                pad0;           // first padding
-    uint32_t                mask;           // number of mask bits N specified for example in ::1/N
-    const char*             iface;          // pointer to place in address string where interface is defined
-    uint32_t                iface_len;      // number of bytes in the name of the interface
-    uint32_t                flags;          // flags indicating features of address
-} ipv6_address_full_t;</code></pre>
-            <h3 id="diagnostics">Diagnostics and result codes</h3>
-            <pre><code class="language-c">typedef enum {
-    IPV6_COMPARE_OK = 0,
-    IPV6_COMPARE_FORMAT_MISMATCH,       // address differ in their
-    IPV6_COMPARE_MASK_MISMATCH,         // the CIDR mask does not match
-    IPV6_COMPARE_PORT_MISMATCH,         // the port does not match
-    IPV6_COMPARE_ADDRESS_MISMATCH,      // address components do not match
-} ipv6_compare_result_t;</code></pre>
-            <pre><code class="language-c">typedef enum {
-    IPV6_DIAG_STRING_SIZE_EXCEEDED          = 0,
-    IPV6_DIAG_INVALID_INPUT                 = 1,
-    IPV6_DIAG_INVALID_INPUT_CHAR            = 2,
-    IPV6_DIAG_TRAILING_ZEROES               = 3,
-    IPV6_DIAG_V6_BAD_COMPONENT_COUNT        = 4,
-    IPV6_DIAG_V4_BAD_COMPONENT_COUNT        = 5,
-    IPV6_DIAG_V6_COMPONENT_OUT_OF_RANGE     = 6,
-    IPV6_DIAG_V4_COMPONENT_OUT_OF_RANGE     = 7,
-    IPV6_DIAG_INVALID_PORT                  = 8,
-    IPV6_DIAG_INVALID_CIDR_MASK             = 9,
-    IPV6_DIAG_IPV4_REQUIRED_BITS            = 10,
-    IPV6_DIAG_IPV4_INCORRECT_POSITION       = 11,
-    IPV6_DIAG_INVALID_BRACKETS              = 12,
-    IPV6_DIAG_INVALID_ABBREV                = 13,
-    IPV6_DIAG_INVALID_DECIMAL_TOKEN         = 14,
-    IPV6_DIAG_INVALID_HEX_TOKEN             = 15,
-} ipv6_diag_event_t;</code></pre>
-            <pre><code class="language-c">typedef struct {
-    const char* message;    // English ascii debug message
-    const char* input;      // Input string that generated the diagnostic
-    uint32_t    position;   // Position in input that caused the diagnostic
-    uint32_t    pad0;
-} ipv6_diag_info_t;</code></pre>
-            <pre><code class="language-c">typedef void (*ipv6_diag_func_t) (
-    ipv6_diag_event_t event,
-    const ipv6_diag_info_t* info,
-    void* user_data);</code></pre>
-        </section>
-        <section id="javascript">
-            <h2>JavaScript</h2>
-            <h3>Node.js</h3>
-            <pre><code class="language-sh">npm install ipv6-parse</code></pre>
-            <p>The convenience API initializes WebAssembly on first use:</p>
-            <pre><code class="language-javascript">const ipv6 = require('ipv6-parse');
-
-async function main() {
-    const addr = await ipv6.parse('2001:db8::1');
-    console.log(addr.formatted);
-}
-
-main().catch(console.error);</code></pre>
-            <p>For repeated parsing, initialize once and use the synchronous parser:</p>
-            <pre><code class="language-javascript">const ipv6 = require('ipv6-parse');
-
-async function main() {
-    const { parser } = await ipv6.createParser();
-    const addr = parser.parse('2001:db8::1');
-    console.log(addr.formatted);
-}
-
-main().catch(console.error);</code></pre>
-            <p>See the <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_NPM.md">Node.js reference</a>
-                for validation, comparison, error handling, and the parsed address object. TypeScript declarations are included;
-                see the <a href="https://github.com/jrepp/ipv6-parse/blob/main/docs/README_TYPESCRIPT.md">TypeScript examples</a>.</p>
-            <h3>Browser</h3>
-            <p>Place the JavaScript files from the WebAssembly release alongside your page:</p>
-            <pre><code class="language-html">&lt;script src="ipv6-parse.js"&gt;&lt;/script&gt;
-&lt;script src="ipv6-parse-api.js"&gt;&lt;/script&gt;
-&lt;script&gt;
-createIPv6Module().then(module =&gt; {
-    const parser = new IPv6Parser(module);
-    console.log(parser.parse('2001:db8::1').formatted);
-}).catch(console.error);
-&lt;/script&gt;</code></pre>
-            <p>The <a href="index.html">interactive demo</a> parses addresses locally in your browser and includes batch
-                examples and error positions. See the
-                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_WASM.md">WebAssembly guide</a>
-                for build options and more examples.</p>
-        </section>
-        <section id="development">
-            <h2>Development</h2>
-            <h3>Native tests and tracing</h3>
-            <pre><code class="language-sh">cmake -S . -B build -DIPV6_PARSE_LIBRARY_ONLY=OFF
-cmake --build build --config Release
-ctest --test-dir build --build-config Release --output-on-failure</code></pre>
-            <p>This enables the unit tests, extended tests, fuzz driver, and command-line tool.
-                Add <code>-DPARSE_TRACE=1</code> to the configure command to trace parsing.</p>
-            <p>CI builds with GCC, Clang, MSVC, and AppleClang, runs the Node.js and Conan tests,
-                collects coverage, and checks memory use with Valgrind. See the
-                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_CI.md">CI guide</a> and
-                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_COVERAGE.md">coverage instructions</a>.</p>
-            <h3>WebAssembly build and tests</h3>
-            <p>Install and activate the Emscripten SDK, then run:</p>
-            <pre><code class="language-sh">./build_wasm.sh
-npm ci
-npm test</code></pre>
-            <p>Use the Node.js and npm versions specified in <code>package.json</code>.
-                The build script regenerates <code>docs/ipv6-parse.js</code>.</p>
-            <h3 id="performance">Benchmarks</h3>
-            <p>Measure on your target hardware and build configuration:</p>
-            <pre><code class="language-sh">./build/bin/ipv6-fuzz 100000
-npm run bench</code></pre>
-            <p>The native driver exercises parsing, formatting, and comparison. The JavaScript benchmark measures
-                WebAssembly parsing across address types. Historical results and methodology are in the
-                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_WASM.md#performance">WebAssembly performance notes</a>.</p>
-            <h3>Documentation preview and publishing</h3>
-            <pre><code class="language-sh">python3 -m http.server --directory docs 8000</code></pre>
-            <p>Open <code>http://localhost:8000/guide.html</code> for this guide or <code>http://localhost:8000/</code>
-                for the demo. These are static HTML pages and require no documentation build step.</p>
-            <p>The Pages workflow builds the site on pull requests and deploys from <code>main</code> when the documentation
-                or parser sources change. The repository's Pages source must be set to GitHub Actions.
-                Release tags do not deploy the site.</p>
+            <h2>Use the API in your language</h2>
+            <p>Start with installation and a working example, then learn how to inspect fields and handle invalid input.</p>
+            <ul>
+                <li id="c-api"><a href="c-api.html">C guide</a>: building, parsing, formatting, diagnostics, and comparison.</li>
+                <li id="javascript"><a href="javascript.html">JavaScript guide</a>: Node.js, browser setup, and synchronous parsing.</li>
+                <li><a href="typescript.html">TypeScript guide</a>: typed results, nullable fields, and errors.</li>
+                <li id="development"><a href="development.html">Development guide</a>: tests, <span id="performance">benchmarks</span>, and documentation publishing.</li>
+            </ul>
         </section>
     </main>
-    <footer><a href="https://github.com/jrepp/ipv6-parse/blob/main/CONTRIBUTING.md">Contributing</a> ·
+    <footer><a href="https://github.com/jrepp/ipv6-parse">Source on GitHub</a> ·
+        <a href="https://github.com/jrepp/ipv6-parse/blob/main/CONTRIBUTING.md">Contributing</a> ·
         <a href="https://github.com/jrepp/ipv6-parse/blob/main/LICENSE">MIT license</a></footer>
 </body>
 </html>

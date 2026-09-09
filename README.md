@@ -8,7 +8,7 @@ IPv4 embedded in IPv6. JavaScript bindings are available through WebAssembly.
 [![Coverage](https://codecov.io/gh/jrepp/ipv6-parse/branch/main/graph/badge.svg)](https://codecov.io/gh/jrepp/ipv6-parse)
 
 [Try it in your browser](https://jrepp.github.io/ipv6-parse/) ·
-[Documentation](https://jrepp.github.io/ipv6-parse/guide.html) ·
+[IPv6 introduction](https://jrepp.github.io/ipv6-parse/guide.html) ·
 [Releases](https://github.com/jrepp/ipv6-parse/releases)
 
 ## Usage
@@ -43,7 +43,7 @@ int main(void) {
 ```
 
 Zone IDs reference the original input string; keep it alive while using the
-parsed address. See the [C API reference](https://jrepp.github.io/ipv6-parse/guide.html#c-api)
+parsed address. See the [C API reference](https://jrepp.github.io/ipv6-parse/c-api.html)
 for diagnostics, field flags, and comparison options.
 
 ## Build
@@ -57,7 +57,7 @@ cmake --install build --config Release
 ```
 
 This builds a static library by default. Use `-DBUILD_SHARED_LIBS=ON` for a shared
-library. The [installation guide](https://jrepp.github.io/ipv6-parse/guide.html#installation)
+library. The [installation guide](https://jrepp.github.io/ipv6-parse/c-api.html#installation)
 covers CMake integration, pkg-config, and package managers.
 
 ## JavaScript
@@ -77,8 +77,9 @@ async function main() {
 main().catch(console.error);
 ```
 
-See the [JavaScript guide](https://jrepp.github.io/ipv6-parse/guide.html#javascript)
-for synchronous parsing, TypeScript, and browser usage.
+See the [JavaScript guide](https://jrepp.github.io/ipv6-parse/javascript.html)
+for synchronous parsing and browser usage, or the
+[TypeScript guide](https://jrepp.github.io/ipv6-parse/typescript.html) for typed examples.
 
 ## Development
 
@@ -91,5 +92,5 @@ ctest --test-dir build --build-config Release --output-on-failure
 ```
 
 [Contributing](CONTRIBUTING.md) ·
-[Testing and benchmarks](https://jrepp.github.io/ipv6-parse/guide.html#development) ·
+[Testing and benchmarks](https://jrepp.github.io/ipv6-parse/development.html) ·
 [MIT license](LICENSE)

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Build the project, run tests and benchmarks, and preview the documentation.">
+    <title>Development and publishing · ipv6-parse</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header>
+        <nav aria-label="Documentation">
+            <a href="guide.html">IPv6 introduction</a>
+            <a href="c-api.html">C</a>
+            <a href="javascript.html">JavaScript</a>
+            <a href="typescript.html">TypeScript</a>
+            <a href="development.html" aria-current="page">Development</a>
+            <a href="index.html">Demo</a>
+        </nav>
+        <h1>Development and publishing</h1>
+        <p>Build the project, run tests and benchmarks, and preview the documentation.</p>
+        <nav aria-label="On this page">
+            <a href="#development">Build and test</a>
+            <a href="#performance">Benchmarks</a>
+        </nav>
+    </header>
+    <main id="main">
+        <section id="development">
+            <h2>Build and test</h2>
+            <h3>Native tests and tracing</h3>
+            <pre><code class="language-sh">cmake -S . -B build -DIPV6_PARSE_LIBRARY_ONLY=OFF
+cmake --build build --config Release
+ctest --test-dir build --build-config Release --output-on-failure</code></pre>
+            <p>This enables the unit tests, extended tests, fuzz driver, and command-line tool.
+                Add <code>-DPARSE_TRACE=1</code> to the configure command to trace parsing.</p>
+            <p>CI builds with GCC, Clang, MSVC, and AppleClang, runs the Node.js and Conan tests,
+                collects coverage, and checks memory use with Valgrind. See the
+                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_CI.md">CI guide</a> and
+                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_COVERAGE.md">coverage instructions</a>.</p>
+            <h3>WebAssembly build and tests</h3>
+            <p>Install and activate the Emscripten SDK, then run:</p>
+            <pre><code class="language-sh">./build_wasm.sh
+npm ci
+npm test</code></pre>
+            <p>Use the Node.js and npm versions specified in <code>package.json</code>.
+                The build script regenerates <code>docs/ipv6-parse.js</code>.</p>
+            <h3 id="performance">Benchmarks</h3>
+            <p>Measure on your target hardware and build configuration:</p>
+            <pre><code class="language-sh">./build/bin/ipv6-fuzz 100000
+npm run bench</code></pre>
+            <p>The native driver exercises parsing, formatting, and comparison. The JavaScript benchmark measures
+                WebAssembly parsing across address types. Historical results and methodology are in the
+                <a href="https://github.com/jrepp/ipv6-parse/blob/main/README_WASM.md#performance">WebAssembly performance notes</a>.</p>
+            <h3>Documentation preview and publishing</h3>
+            <pre><code class="language-sh">python3 -m http.server --directory docs 8000</code></pre>
+            <p>Open <code>http://localhost:8000/guide.html</code> for the IPv6 introduction or <code>http://localhost:8000/</code>
+                for the demo. These are static HTML pages and require no documentation build step.</p>
+            <p>The Pages workflow builds the site on pull requests and deploys from <code>main</code> when the documentation
+                or parser sources change. The repository's Pages source must be set to GitHub Actions.
+                Release tags do not deploy the site.</p>
+        </section>
+    </main>
+    <footer><a href="https://github.com/jrepp/ipv6-parse">Source on GitHub</a> ·
+        <a href="https://github.com/jrepp/ipv6-parse/blob/main/CONTRIBUTING.md">Contributing</a> ·
+        <a href="https://github.com/jrepp/ipv6-parse/blob/main/LICENSE">MIT license</a></footer>
+</body>
+</html>
