@@ -253,7 +253,9 @@ jobs:
       - name: Verify pinned toolchain
         run: npm run test:toolchain
 
-      - name: Verify direct dependencies are current
+      # New upstream releases should not fail an otherwise valid build.
+      - name: Report available dependency updates
+        continue-on-error: true
         run: npm outdated --depth=0
 
       - name: Audit dependencies
