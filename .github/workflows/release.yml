@@ -13,7 +13,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
   id-token: write
 
 jobs:
@@ -253,37 +252,8 @@ jobs:
       - name: Sync version to git tag
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
 
-      - name: Publish to NPM
-        run: npm publish
-
-  deploy-pages:
-    name: Deploy to GitHub Pages
-    needs: [build-wasm, create-release]
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download WASM artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: wasm-module
-          path: docs
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'docs'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Stage to NPM
+        run: npm stage publish
 
   publish-conan:
     name: Publish to Conan
