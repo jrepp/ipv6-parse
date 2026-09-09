@@ -1,5 +1,7 @@
 # WebAssembly Build for ipv6-parse
 
+Start with the [JavaScript browser guide](https://jrepp.github.io/ipv6-parse/javascript.html#browser) for API usage and examples.
+
 This document describes how to build and use the WebAssembly (WASM) version of ipv6-parse for use in web browsers.
 
 ## Overview
@@ -365,7 +367,7 @@ build the site without deploying it. Release tags do not publish Pages.
 You can also run the workflow manually on `main` from the Actions tab.
 
 The published site contains the [interactive demo](https://jrepp.github.io/ipv6-parse/)
-and [library guide](https://jrepp.github.io/ipv6-parse/guide.html).
+and [IPv6 introduction](https://jrepp.github.io/ipv6-parse/guide.html).
 See [docs/README.md](docs/README.md) for local preview instructions.
 
 ## File Structure

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Parse IPv6 and IPv4 in Node.js or a browser with the WebAssembly API.">
+    <title>Using ipv6-parse in JavaScript · ipv6-parse</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header>
+        <nav aria-label="Documentation">
+            <a href="guide.html">IPv6 introduction</a>
+            <a href="c-api.html">C</a>
+            <a href="javascript.html" aria-current="page">JavaScript</a>
+            <a href="typescript.html">TypeScript</a>
+            <a href="development.html">Development</a>
+            <a href="index.html">Demo</a>
+        </nav>
+        <h1>Using ipv6-parse in JavaScript</h1>
+        <p>Parse IPv6 and IPv4 in Node.js or a browser with the WebAssembly API.</p>
+        <nav aria-label="On this page">
+            <a href="#nodejs">Node.js</a>
+            <a href="#synchronous">Synchronous API</a>
+            <a href="#browser">Browser</a>
+            <a href="#results">Results</a>
+            <a href="#errors">Errors</a>
+            <a href="#comparison">Comparison</a>
+            <a href="#lifetime">Lifetime</a>
+        </nav>
+    </header>
+    <main id="main">
+        <p>The Node.js package and browser API use the same C parser compiled to WebAssembly.
+            If address notation is unfamiliar, start with <a href="guide.html">Reading IPv6 addresses</a>.</p>
+        <section id="nodejs">
+            <h2>Start in Node.js</h2>
+            <pre><code class="language-sh">npm install ipv6-parse</code></pre>
+            <p>Save this as <code>example.cjs</code> and run <code>node example.cjs</code>.
+                The convenience functions load WebAssembly on first use and return promises.</p>
+            <pre><code class="language-javascript" data-example="js-async">const ipv6 = require('ipv6-parse');
+
+async function main() {
+    const addr = await ipv6.parse('[fe80::7/64%eth0]:8080');
+    console.log(addr.formatted); // [fe80::7/64%eth0]:8080
+    console.log(addr.port);      // 8080
+    console.log(addr.mask);      // 64
+    console.log(addr.zone);      // eth0
+}
+
+main().catch(console.error);</code></pre>
+        </section>
+        <section id="synchronous">
+            <h2>Initialize once for synchronous parsing</h2>
+            <p>Await <code>createParser()</code> at startup, then call methods on its <code>parser</code> synchronously.
+                This avoids a promise for every address in a loop.</p>
+            <pre><code class="language-javascript" data-example="js-sync">const ipv6 = require('ipv6-parse');
+
+async function main() {
+    const { parser } = await ipv6.createParser();
+    for (const input of ['2001:db8::7', '::1', '192.0.2.1']) {
+        const addr = parser.tryParse(input);
+        console.log(addr === null ? 'Invalid address' : addr.formatted);
+    }
+}
+
+main().catch(console.error);</code></pre>
+            <p><code>createParser()</code> returns an object containing the parser, classes, and a synchronous functional
+                API named <code>ipv6</code>. After initialization, <code>getParser()</code> and <code>getAPI()</code>
+                return the cached objects; they throw if called before initialization.</p>
+        </section>
+        <section id="browser">
+            <h2>Use the same parser in a browser</h2>
+            <p>Download the WebAssembly archive from the <a href="https://github.com/jrepp/ipv6-parse/releases">releases</a>,
+                or build it with <code>./build_wasm.sh</code>. Place both JavaScript files beside this HTML page.</p>
+            <pre><code class="language-html" data-example="js-browser">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;Parse an IPv6 address&lt;/title&gt;
+&lt;pre id="output"&gt;Loading…&lt;/pre&gt;
+&lt;script src="ipv6-parse.js"&gt;&lt;/script&gt;
+&lt;script src="ipv6-parse-api.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+const output = document.getElementById('output');
+createIPv6Module().then(module =&gt; {
+    const parser = new IPv6Parser(module);
+    try {
+        output.textContent = parser.parse('[::1]:8080').formatted;
+    } finally {
+        parser.destroy();
+    }
+}).catch(error =&gt; { output.textContent = error.message; });
+&lt;/script&gt;
+&lt;/html&gt;</code></pre>
+            <p>Module loading is asynchronous; methods on the initialized parser are synchronous.
+                The <a href="index.html">demo</a> uses this setup. Browser globals and the Node.js package have
+                different initialization steps, but expose the same parser methods.</p>
+        </section>
+        <section id="results">
+            <h2>Read a parsed result</h2>
+            <p><code>parse()</code> returns an <code>IPv6Address</code>. Missing optional fields are <code>null</code>,
+                so use <code>addr.port !== null</code> or <code>addr.hasPort</code> rather than a truthiness check.
+                A present port or mask can be zero.</p>
+            <div class="table-scroll"><table>
+                <thead><tr><th>Property</th><th>Value</th></tr></thead>
+                <tbody>
+                    <tr><td><code>formatted</code></td><td>Formatted text; includes IPv6 mask, zone, and port when supplied.</td></tr>
+                    <tr><td><code>components</code></td><td>Eight numeric 16-bit components, returned as an array copy.</td></tr>
+                    <tr><td><code>port</code>, <code>mask</code></td><td>Number or <code>null</code>.</td></tr>
+                    <tr><td><code>zone</code></td><td>String or <code>null</code>.</td></tr>
+                    <tr><td><code>hasPort</code>, <code>hasMask</code></td><td>Whether those fields were supplied.</td></tr>
+                    <tr><td><code>isIPv4Embedded</code></td><td>Dotted IPv4 was embedded in IPv6.</td></tr>
+                    <tr><td><code>isIPv4Compatible</code></td><td>Plain IPv4 input, such as <code>192.0.2.1</code>.</td></tr>
+                </tbody>
+            </table></div>
+            <p><code>getComponentHex(index)</code> returns a four-digit hexadecimal group. <code>toString()</code>
+                returns <code>formatted</code>; <code>toJSON()</code> returns a plain object for serialization.
+                Plain IPv4 results retain a parsed CIDR mask in <code>mask</code>, but currently omit it from
+                <code>formatted</code>.</p>
+            <p>Results contain copies of the values read from WebAssembly, including zone text. You can keep a result
+                after another parse or after releasing the parser's buffers.</p>
+        </section>
+        <section id="errors">
+            <h2>Choose how to handle invalid input</h2>
+            <div class="table-scroll"><table>
+                <thead><tr><th>Method</th><th>Invalid input</th></tr></thead>
+                <tbody>
+                    <tr><td><code>parse(input)</code></td><td>Throws <code>IPv6ParseError</code>.</td></tr>
+                    <tr><td><code>tryParse(input)</code></td><td>Returns <code>null</code>.</td></tr>
+                    <tr><td><code>isValid(input)</code></td><td>Returns <code>false</code>.</td></tr>
+                </tbody>
+            </table></div>
+            <p>The package-level versions return promises with the same results; a thrown parse error becomes a rejection.
+                For diagnostics, get the error class after initialization:</p>
+            <pre><code class="language-javascript" data-example="js-errors">const ipv6 = require('ipv6-parse');
+
+async function main() {
+    const { parser, IPv6ParseError } = await ipv6.createParser();
+    try {
+        parser.parse('2001:gggg::7');
+    } catch (error) {
+        if (!(error instanceof IPv6ParseError)) throw error;
+        console.error(error.getDetailedMessage());
+    }
+}
+
+main().catch(console.error);</code></pre>
+            <p>The error includes <code>message</code> and <code>input</code>. When native diagnostics are available,
+                it also includes <code>diagnostic</code>, <code>position</code>, and <code>event</code>.
+                Empty or non-string input may have no native diagnostic. <code>tryParse()</code> and
+                <code>isValid()</code> still propagate errors unrelated to parsing.</p>
+        </section>
+        <section id="comparison">
+            <h2>Compare parsed values</h2>
+            <pre><code class="language-javascript" data-example="js-comparison">const ipv6 = require('ipv6-parse');
+
+async function main() {
+    const { parser } = await ipv6.createParser();
+    console.log(parser.equals('::1', '0:0:0:0:0:0:0:1')); // true
+    console.log(parser.equals('[::1]:80', '[::1]:443')); // false
+    console.log(parser.equals('[::1]:80', '[::1]:443', {
+        ignorePort: true
+    })); // true
+}
+
+main().catch(console.error);</code></pre>
+            <p>Use <code>ignorePort</code> or <code>ignoreMask</code> to exclude that field. The runtime also accepts
+                <code>ignoreFormat</code> to compare plain and embedded IPv4 forms. Comparison is not a subnet-membership test;
+                invalid address strings compare unequal.</p>
+            <p>Zone IDs are always excluded by the underlying comparison. If interface identity matters, parse both inputs
+                and also compare <code>a.zone === b.zone</code>. There is no option that enables zone comparison.</p>
+        </section>
+        <section id="lifetime">
+            <h2>Parser lifetime</h2>
+            <p>A parser allocates and reuses WebAssembly buffers. Call <code>parser.destroy()</code> when the owner is done
+                with it. Node.js caches a shared parser, so coordinate cleanup with other users of that parser.
+                Browser code that constructs its own parser owns that instance.</p>
+            <p><code>getVersion()</code> reports the library version. The <a href="development.html">development guide</a>
+                covers WebAssembly builds, tests, and benchmarks. For typed application code, continue with the
+                <a href="typescript.html">TypeScript guide</a>.</p>
+        </section>
+    </main>
+    <footer><a href="https://github.com/jrepp/ipv6-parse">Source on GitHub</a> ·
+        <a href="https://github.com/jrepp/ipv6-parse/blob/main/CONTRIBUTING.md">Contributing</a> ·
+        <a href="https://github.com/jrepp/ipv6-parse/blob/main/LICENSE">MIT license</a></footer>
+</body>
+</html>

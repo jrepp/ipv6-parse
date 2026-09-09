@@ -1,5 +1,7 @@
 # TypeScript Usage Guide
 
+Start with the [TypeScript API guide](https://jrepp.github.io/ipv6-parse/typescript.html) for API usage and examples.
+
 Complete TypeScript support with type definitions for compile-time type safety and IDE autocomplete.
 
 ## Installation
