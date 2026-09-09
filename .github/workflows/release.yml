@@ -102,7 +102,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Emscripten
-        uses: mymindstorm/setup-emsdk@v14
+        uses: emscripten-core/setup-emsdk@v16
         with:
           version: latest
 
@@ -244,6 +244,11 @@ jobs:
 
       - name: Run tests
         run: npm run test
+
+      - name: Setup Emscripten
+        uses: emscripten-core/setup-emsdk@v16
+        with:
+          version: latest
 
       - name: Publish to NPM
         run: npm publish
