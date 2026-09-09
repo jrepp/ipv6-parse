@@ -356,26 +356,17 @@ parser.destroy();
 
 ## Deploying to GitHub Pages
 
-1. Build the WASM module:
-   ```bash
-   ./build_wasm.sh
-   ```
+In repository **Settings → Pages**, set the source to **GitHub Actions**.
+The `github-pages` environment must allow deployments from `main`.
 
-2. Commit the generated files:
-   ```bash
-   git add docs/
-   git commit -m "Add WASM build for GitHub Pages"
-   git push
-   ```
+The [Pages workflow](.github/workflows/pages.yml) builds WebAssembly and uploads
+`docs/` when documentation or parser sources change on `main`. Pull requests
+build the site without deploying it. Release tags do not publish Pages.
+You can also run the workflow manually on `main` from the Actions tab.
 
-3. Enable GitHub Pages:
-   - Go to repository Settings
-   - Navigate to Pages section
-   - Select "Deploy from a branch"
-   - Choose the `master` branch and `/docs` folder
-   - Save
-
-4. Your site will be available at `https://username.github.io/ipv6-parse/`
+The published site contains the [interactive demo](https://jrepp.github.io/ipv6-parse/)
+and [library guide](https://jrepp.github.io/ipv6-parse/guide.html).
+See [docs/README.md](docs/README.md) for local preview instructions.
 
 ## File Structure
 

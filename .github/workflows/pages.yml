@@ -6,6 +6,22 @@ on:
       - main
     paths:
       - 'docs/**'
+      - 'ipv6.c'
+      - 'ipv6.h'
+      - 'ipv6_config.h.in'
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'ipv6_wasm.c'
+      - 'build_wasm.sh'
+      - '.github/workflows/pages.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'ipv6.c'
+      - 'ipv6.h'
+      - 'ipv6_config.h.in'
+      - 'CMakeLists.txt'
+      - 'cmake/**'
       - 'ipv6_wasm.c'
       - 'build_wasm.sh'
       - '.github/workflows/pages.yml'
@@ -13,39 +29,46 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
+  group: "pages-${{ github.ref }}"
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
-    name: Build WASM and Deploy to GitHub Pages
+  build:
+    name: Build Pages site
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Emscripten
-        uses: mymindstorm/setup-emsdk@v14
+        uses: emscripten-core/setup-emsdk@v16
         with:
           version: latest
 
       - name: Build WASM
         run: ./build_wasm.sh
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'docs'
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
       - name: Deploy to GitHub Pages
         id: deployment
