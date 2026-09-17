@@ -54,11 +54,11 @@ jobs:
           if [ "${{ matrix.compiler }}" = "clang" ]; then
             sudo apt-get update
             sudo apt-get install -y clang
-            echo "CC=clang" >> $GITHUB_ENV
-            echo "CXX=clang++" >> $GITHUB_ENV
+            echo "CC=clang" >> "$GITHUB_ENV"
+            echo "CXX=clang++" >> "$GITHUB_ENV"
           else
-            echo "CC=gcc" >> $GITHUB_ENV
-            echo "CXX=g++" >> $GITHUB_ENV
+            echo "CC=gcc" >> "$GITHUB_ENV"
+            echo "CXX=g++" >> "$GITHUB_ENV"
           fi
 
       - name: Configure CMake
@@ -139,7 +139,7 @@ jobs:
           find artifacts/linux-packages-* -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.tar.gz" \) -exec cp {} release/ \;
           # Copy WASM module
           cd artifacts/wasm-module
-          zip -r ../../release/ipv6-parse-wasm.zip *
+          zip -r ../../release/ipv6-parse-wasm.zip ./*
           cd ../..
 
       - name: Extract version from tag
@@ -151,8 +151,8 @@ jobs:
             TAG="${{ github.ref_name }}"
           fi
           VERSION=${TAG#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Generate release notes
         run: |
@@ -198,7 +198,7 @@ jobs:
           EOF
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3.0.3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.version }}
@@ -286,7 +286,7 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           VERSION=${TAG#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create Conan package
         run: |
